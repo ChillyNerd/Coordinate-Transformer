@@ -1,0 +1,4 @@
+dash~=2.14.2
+dash-bootstrap-components==1.2.0
+pyproj~=3.6.1
+PyYAML==5.4.1

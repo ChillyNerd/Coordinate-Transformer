@@ -1,0 +1,33 @@
+.column-gap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.row-between {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.input-form {
+    padding: 5px;
+    border: 1px solid gray;
+    width: 300px;
+}
+
+.output-form {
+    padding: 5px;
+    border: 1px solid gray;
+    width: 300px;
+}
+
+.choose-form {
+    padding: 5px;
+    border: 1px solid gray;
+    width: 600px;
+}
+
+.data-form {
+    width: 1300px;
+}

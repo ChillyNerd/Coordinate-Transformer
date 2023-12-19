@@ -12,4 +12,3 @@ if __name__ == '__main__':
     except Exception as e:
         log.error("Failed to initialize application")
         log.exception(e)
-

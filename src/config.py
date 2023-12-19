@@ -1,7 +1,7 @@
 import os
+import socket
 
 import yaml
-import socket
 
 
 class Config:

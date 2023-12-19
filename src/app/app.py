@@ -1,10 +1,11 @@
 import traceback
 
 from dash import Dash, html, Input, Output, callback
-from flask import request
 from dash.exceptions import PreventUpdate
-from src.coordinate_transformer import transform
+from flask import request
+
 from src.app.components import input_form, choose_form, output_form
+from src.coordinate_transformer import transform
 from src.logger import log
 
 app = Dash(__name__, update_title=None, title='Coordinate Transformer')

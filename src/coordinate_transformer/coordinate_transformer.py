@@ -1,6 +1,5 @@
 from pyproj import CRS, Transformer
 
-
 pulkovopz_str = (
     "proj=pipeline "
     "step proj=axisswap order=2,1 "

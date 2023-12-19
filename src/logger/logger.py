@@ -6,7 +6,7 @@ current_date = str(datetime.datetime.now().date())
 logs_path = os.path.join(os.getcwd(), 'logs')
 if not os.path.exists(logs_path):
     os.mkdir(logs_path)
-log = logging.getLogger('ansible_server')
+log = logging.getLogger('coordinate_transformer')
 handler = logging.handlers.RotatingFileHandler(os.path.join(logs_path, f'{current_date}.log'), mode='a',
                                                maxBytes=5_000_000, backupCount=1000)
 logger_handlers = [handler, logging.StreamHandler()]

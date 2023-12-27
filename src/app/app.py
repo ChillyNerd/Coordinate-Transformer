@@ -1,45 +1,52 @@
 import traceback
 
-from dash import Dash, html, Input, Output, callback
+from dash import Dash, html, Input, Output, callback, State, dcc
 from dash.exceptions import PreventUpdate
 from flask import request
 
-from src.app.components import input_form, choose_form, output_form
-from src.coordinate_transformer import transform
+from src.app.components import input_form, choose_form, output_form, input_angle_form, input_numeric_form
+from src.coordinate_transformer import trans
+from src.coordinate_transformer.defaults import Metrics, projections
 from src.logger import log
 
-app = Dash(__name__, update_title=None, title='Coordinate Transformer')
+app = Dash(__name__, update_title=None, title='Калькулятор координат')
 data_form = html.Div(children=[input_form, choose_form, output_form], className="row-between data-form")
 error_form = html.Div(id='error')
-app.layout = html.Div(children=[data_form, error_form], className="column-gap")
+app.layout = html.Div(
+    children=[
+        dcc.Store(id='latitude'),
+        dcc.Store(id='longitude'),
+        dcc.Store(id='numeric_latitude'),
+        dcc.Store(id='numeric_longitude'),
+        dcc.Store(id='angle_latitude'),
+        dcc.Store(id='angle_longitude'),
+        data_form,
+        error_form
+    ],
+    className="column-gap"
+)
 
 
 @callback(
-    Output('lat3_value', 'children'),
-    Output('long3_value', 'children'),
     Output('lat4_value', 'children'),
     Output('long4_value', 'children'),
     Output('error', 'children'),
-    Input('latitude', 'value'),
-    Input('longitude', 'value'),
+    Input('latitude', 'data'),
+    Input('longitude', 'data'),
     Input('projection_from_select', 'value'),
     Input('projection_to_select', 'value')
 )
 def transform_coordinates(latitude, longitude, projection_from, projection_to):
     if latitude is None or longitude is None or projection_from is None or projection_to is None:
-        raise PreventUpdate
+        return None, None, None
     try:
         log.debug(f"{request.remote_addr} is transforming (latitude: {latitude}, longitude: {longitude}) "
                   f"for projections (from: {projection_from}, to: {projection_to})")
-        transformed = transform(latitude, longitude, projection_from, projection_to)
-        lat3 = transformed['lat3']
-        lat4 = transformed['lat4']
-        long3 = transformed['long3']
-        long4 = transformed['long4']
-        log.debug(f"Got {transformed}")
-        return str(lat3), str(long3), str(lat4), str(long4), ''
+        lat4, long4 = trans(latitude, longitude, projection_from, projection_to)
+        log.debug(f"Got {lat4, long4}")
+        return str(lat4), str(long4), ''
     except Exception as e:
-        return None, None, None, None, traceback.format_exc()
+        return None, None, traceback.format_exc()
 
 
 @callback(
@@ -47,8 +54,6 @@ def transform_coordinates(latitude, longitude, projection_from, projection_to):
     Input('projection_from_select', 'value')
 )
 def transform_coordinates(projection_from):
-    if projection_from is None:
-        raise PreventUpdate
     return projection_from
 
 
@@ -57,6 +62,106 @@ def transform_coordinates(projection_from):
     Input('projection_to_select', 'value')
 )
 def transform_coordinates(projection_to):
-    if projection_to is None:
-        raise PreventUpdate
     return projection_to
+
+
+@callback(
+    Output('input_form', 'children'),
+    Output('projection_from_select', 'options'),
+    Output('projection_from_select', 'value'),
+    Input('metrics_select', 'value')
+)
+def transform_coordinates(metric):
+    if metric is None:
+        raise PreventUpdate
+    projections_from = list(filter(lambda projection: metric in projection.allowed_metrics, projections))
+    projections_from_options = [{'label': proj.comment, 'value': proj.mnemonic} for proj in projections_from]
+    if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
+        return input_numeric_form, projections_from_options, None
+    if metric == Metrics.ANGLE.name:
+        return input_angle_form, projections_from_options, None
+    raise PreventUpdate
+
+
+@callback(
+    Output('numeric_longitude', 'data'),
+    Input('longitude_numeric_input', 'value'),
+    Input('metrics_select', 'value')
+)
+def numeric_longitude(longitude, metric):
+    if metric == Metrics.ANGLE.name:
+        return None
+    return longitude
+
+
+@callback(
+    Output('numeric_latitude', 'data'),
+    Input('latitude_numeric_input', 'value'),
+    Input('metrics_select', 'value')
+)
+def numeric_latitude(latitude, metric):
+    if metric == Metrics.ANGLE.name:
+        return None
+    return latitude
+
+
+@callback(
+    Output('angle_longitude', 'data'),
+    Input('longitude_angle_input', 'value'),
+    Input('longitude_angle_minutes_input', 'value'),
+    Input('longitude_angle_seconds_input', 'value'),
+    Input('metrics_select', 'value')
+)
+def angle_longitude(angle, minutes, seconds, metric):
+    if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
+        return None
+    if angle is not None and minutes is not None and seconds is not None:
+        return angle + minutes / 60.0 + seconds / 3600.0
+    return None
+
+
+@callback(
+    Output('angle_latitude', 'data'),
+    Input('latitude_angle_input', 'value'),
+    Input('latitude_angle_minutes_input', 'value'),
+    Input('latitude_angle_seconds_input', 'value'),
+    Input('metrics_select', 'value')
+)
+def angle_latitude(angle, minutes, seconds, metric):
+    if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
+        return None
+    if angle is not None and minutes is not None and seconds is not None:
+        return angle + minutes/60.0 + seconds/3600.0
+    return None
+
+
+@callback(
+    Output('latitude', 'data'),
+    Input('angle_latitude', 'data'),
+    Input('numeric_latitude', 'data'),
+)
+def latitude_value(angle, numeric):
+    if angle is None and numeric is None:
+        return None
+    if angle is not None and numeric is not None:
+        return None
+    if angle is None:
+        return numeric
+    else:
+        return angle
+
+
+@callback(
+    Output('longitude', 'data'),
+    Input('angle_longitude', 'data'),
+    Input('numeric_longitude', 'data'),
+)
+def longitude_value(angle, numeric):
+    if angle is None and numeric is None:
+        return None
+    if angle is not None and numeric is not None:
+        return None
+    if angle is None:
+        return numeric
+    else:
+        return angle

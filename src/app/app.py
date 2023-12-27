@@ -165,3 +165,16 @@ def longitude_value(angle, numeric):
         return numeric
     else:
         return angle
+
+
+@callback(
+    Output('latitude_numeric_input', 'min'),
+    Output('latitude_numeric_input', 'max'),
+    Output('longitude_numeric_input', 'min'),
+    Output('longitude_numeric_input', 'max'),
+    Input('metrics_select', 'value')
+)
+def change_input_limit(metric):
+    if metric == Metrics.FLOAT_ANGLE.name:
+        return -90, 90, -180, 180
+    return None, None, None, None

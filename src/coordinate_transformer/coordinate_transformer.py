@@ -1,4 +1,5 @@
 from pyproj import CRS, Transformer, transform
+from src.coordinate_transformer.transform_exception import NotImplementedYet
 
 pulkovopz_str = (
     "proj=pipeline "
@@ -145,6 +146,5 @@ def trans(latitude, longitude, projection_from, projection_to):
         lat2, long2 = transform(projection_from, "epsg:7683", latitude, longitude)
         lat4, long4 = trans(lat2, long2, "epsg:7683", projection_to)
     else:
-        lat4 = "Пересчет координат в данную проекцию находится на стадии разработки"
-        long4 = "Пересчет координат в данную проекцию находится на стадии разработки"
+        raise NotImplementedYet()
     return lat4, long4

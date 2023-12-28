@@ -5,8 +5,7 @@ from dash.exceptions import PreventUpdate
 from flask import request
 
 from src.app.components import input_form, choose_form, output_form, input_angle_form, input_numeric_form
-from src.coordinate_transformer import trans
-from src.coordinate_transformer.defaults import Metrics, projections
+from src.coordinate_transformer import BaseTransformException, Metrics, projections, trans
 from src.logger import log
 
 app = Dash(__name__, update_title=None, title='Калькулятор координат')
@@ -45,7 +44,11 @@ def transform_coordinates(latitude, longitude, projection_from, projection_to):
         lat4, long4 = trans(latitude, longitude, projection_from, projection_to)
         log.debug(f"Got {lat4, long4}")
         return str(lat4), str(long4), ''
+    except BaseTransformException as e:
+        log.error(e.message)
+        return None, None, e.message
     except Exception as e:
+        log.exception(e)
         return None, None, traceback.format_exc()
 
 

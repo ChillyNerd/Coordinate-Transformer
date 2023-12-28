@@ -53,7 +53,7 @@ def transform_coordinates(latitude, longitude, projection_from, projection_to):
     Output('projection_from_value', 'children'),
     Input('projection_from_select', 'value')
 )
-def transform_coordinates(projection_from):
+def select_projection_from(projection_from):
     return projection_from
 
 
@@ -61,7 +61,7 @@ def transform_coordinates(projection_from):
     Output('projection_to_value', 'children'),
     Input('projection_to_select', 'value')
 )
-def transform_coordinates(projection_to):
+def select_projection_to(projection_to):
     return projection_to
 
 
@@ -71,7 +71,7 @@ def transform_coordinates(projection_to):
     Output('projection_from_select', 'value'),
     Input('metrics_select', 'value')
 )
-def transform_coordinates(metric):
+def select_input_form(metric):
     if metric is None:
         raise PreventUpdate
     projections_from = list(filter(lambda projection: metric in projection.allowed_metrics, projections))
@@ -88,7 +88,7 @@ def transform_coordinates(metric):
     Input('longitude_numeric_input', 'value'),
     Input('metrics_select', 'value')
 )
-def numeric_longitude(longitude, metric):
+def set_numeric_longitude(longitude, metric):
     if metric == Metrics.ANGLE.name:
         return None
     return longitude
@@ -99,7 +99,7 @@ def numeric_longitude(longitude, metric):
     Input('latitude_numeric_input', 'value'),
     Input('metrics_select', 'value')
 )
-def numeric_latitude(latitude, metric):
+def set_numeric_latitude(latitude, metric):
     if metric == Metrics.ANGLE.name:
         return None
     return latitude
@@ -112,7 +112,7 @@ def numeric_latitude(latitude, metric):
     Input('longitude_angle_seconds_input', 'value'),
     Input('metrics_select', 'value')
 )
-def angle_longitude(angle, minutes, seconds, metric):
+def set_angle_longitude(angle, minutes, seconds, metric):
     if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
         return None
     if angle is not None and minutes is not None and seconds is not None:
@@ -127,7 +127,7 @@ def angle_longitude(angle, minutes, seconds, metric):
     Input('latitude_angle_seconds_input', 'value'),
     Input('metrics_select', 'value')
 )
-def angle_latitude(angle, minutes, seconds, metric):
+def set_angle_latitude(angle, minutes, seconds, metric):
     if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
         return None
     if angle is not None and minutes is not None and seconds is not None:
@@ -140,7 +140,7 @@ def angle_latitude(angle, minutes, seconds, metric):
     Input('angle_latitude', 'data'),
     Input('numeric_latitude', 'data'),
 )
-def latitude_value(angle, numeric):
+def set_latitude(angle, numeric):
     if angle is None and numeric is None:
         return None
     if angle is not None and numeric is not None:
@@ -156,7 +156,7 @@ def latitude_value(angle, numeric):
     Input('angle_longitude', 'data'),
     Input('numeric_longitude', 'data'),
 )
-def longitude_value(angle, numeric):
+def set_longitude(angle, numeric):
     if angle is None and numeric is None:
         return None
     if angle is not None and numeric is not None:
@@ -174,7 +174,7 @@ def longitude_value(angle, numeric):
     Output('longitude_numeric_input', 'max'),
     Input('metrics_select', 'value')
 )
-def change_input_limit(metric):
+def set_input_limit(metric):
     if metric == Metrics.FLOAT_ANGLE.name:
         return -90, 90, -180, 180
     return None, None, None, None

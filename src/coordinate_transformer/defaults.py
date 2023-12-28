@@ -4,8 +4,8 @@ from typing import List
 
 class Metrics(Enum):
     METER = "Метры"
-    ANGLE = "Угол (градусы)"
-    FLOAT_ANGLE = "Угол (десятичная дробь)"
+    ANGLE = "Градусы"
+    FLOAT_ANGLE = "Градусы (десятичная дробь)"
 
 
 class Projection:

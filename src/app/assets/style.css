@@ -32,12 +32,22 @@
     width: 300px;
 }
 
+.output-excel-form {
+    padding: 5px;
+    border: 1px solid gray;
+    width: 950px;
+}
+
 .choose-form {
     padding: 5px;
     border: 1px solid gray;
     width: 600px;
 }
 
-.data-form {
+.common-form {
+    width: 1300px;
+}
+
+.file-form {
     width: 1300px;
 }

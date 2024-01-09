@@ -148,3 +148,7 @@ def trans(latitude, longitude, projection_from, projection_to):
     else:
         raise NotImplementedYet()
     return lat4, long4
+
+
+def trans_excel(file_path: str):
+    return file_path

@@ -1,4 +1,4 @@
-from dash import dcc, html
+from dash import html
 from src.coordinate_transformer.defaults import Metrics
 import dash_bootstrap_components as dbc
 

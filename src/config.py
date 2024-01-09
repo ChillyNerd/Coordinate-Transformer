@@ -7,11 +7,16 @@ import yaml
 class Config:
     __host = socket.gethostname()
     __port = 7070
+    src_path = os.path.join(os.getcwd(), 'src')
+    map_path = os.path.join(src_path, 'app', 'map')
+    files_path = os.path.join(src_path, 'app', 'files')
 
     def __init__(self, config_path: str = None):
         if config_path is None or not os.path.exists(config_path):
             self.path = None
             return
+        if not os.path.exists(self.files_path):
+            os.mkdir(self.files_path)
         self.path = config_path
         with open(self.path, encoding='utf-8') as file:
             config_file = yaml.load(file, Loader=yaml.FullLoader)

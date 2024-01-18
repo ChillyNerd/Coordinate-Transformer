@@ -8,14 +8,16 @@ pulkovopz_str = (
     "step proj=push v_3 step proj=cart ellps=krass "
     "step proj=helmert x=23.557 y=-140.844 z=-79.778 rx=-0.0023 ry=-0.34646 rz=-0.79421 s=-0.228"
     " convention=coordinate_frame "
-    "step inv proj=cart a=6378136 rf=298.25784 step proj=pop v_3 step proj=longlat a=6378136 rf=298.25784 "
+    "step inv proj=cart a=6378136 rf=298.25784 "
+    "step proj=pop v_3 step proj=longlat a=6378136 rf=298.25784 "
     "step proj=unitconvert xy_in=rad xy_out=deg step proj=axisswap order=2,1"
 )
 pulkovopz_gost2017 = Transformer.from_pipeline(pulkovopz_str)
 
 pulkovopz_str3 = (
     "proj=pipeline "
-    "step proj=axisswap order=2,1 step proj=unitconvert xy_in=deg xy_out=rad "
+    "step proj=axisswap order=2,1 "
+    "step proj=unitconvert xy_in=deg xy_out=rad "
     "step proj=push v_3 step proj=cart ellps=GSK2011 "
     "step proj=helmert x=0 y=0.014 z=-0.008 rx=-0.000562 ry=-0.000019 rz=0.000053 s=-0.0006"
     " convention=coordinate_frame "
@@ -52,7 +54,13 @@ pulkovoz15=Transformer.from_crs("epsg:4284","epsg:28415")    # создаем п
 
 
 def trans(latitude, longitude, projection_from, projection_to):
-    if projection_from == "epsg:4284" and projection_to == "epsg:20904":
+    if projection_from == "epsg:4284" and projection_to == "epsg:4326":
+        transformer = Transformer.from_crs(projection_from, projection_to)
+        lat4, long4 = transformer.transform(latitude, longitude)
+    elif projection_from == "epsg:4284" and projection_to == "epsg:3857":
+        transformer = Transformer.from_crs(projection_from, projection_to)
+        lat4, long4 = transformer.transform(latitude, longitude)
+    elif projection_from == "epsg:4284" and projection_to == "epsg:20904":
         lat2, long2 = pulkovopz_gost2017.transform(latitude, longitude)  # пересчитываем координаты в ПЗ 90-11/PZ90_11
         lat3, long3 = gskpz_gost2017.transform(lat2, long2,
                                                direction='INVERSE')  # пересчитываем координаты в ГСК-2011/GSK-2011 (Zone_id = 64), параметры direction='INVERSE' обязателен

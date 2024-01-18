@@ -1,15 +1,17 @@
-import traceback
 import base64
+import os
+import traceback
+
+import folium
 from dash import Dash, html, Input, Output, callback, State, dcc
 from dash.exceptions import PreventUpdate
 from flask import request
+from folium.plugins import MarkerCluster
 
-from src.app.components import (input_form, choose_form, output_form, input_angle_form, input_numeric_form,
-                                input_excel_form, output_excel_form)
+from src.app.components import *
+from src.config import Config
 from src.coordinate_transformer import BaseTransformException, Metrics, projections, trans, trans_excel
 from src.logger import log
-from src.config import Config
-import os
 
 
 class ApplicationServer:
@@ -18,6 +20,7 @@ class ApplicationServer:
         self.app = Dash(__name__, update_title=None, title='Калькулятор координат')
         common_form = html.Div(children=[input_form, choose_form, output_form], className="row-between common-form")
         file_form = html.Div(children=[input_excel_form, output_excel_form], className="row-between file-form")
+        map_form = html.Iframe(id="map", width="1300", height="700")
         error_form = html.Div(id='error', className='column-gap')
         self.app.layout = html.Div(
             children=[
@@ -32,6 +35,7 @@ class ApplicationServer:
                 dcc.Store(id='excel_upload_error'),
                 common_form,
                 file_form,
+                map_form,
                 error_form
             ],
             className="column-gap"
@@ -241,6 +245,32 @@ class ApplicationServer:
             except Exception as ex:
                 log.exception(ex)
                 return None, traceback.format_exc()
+
+        @callback(
+            [
+                Output('map', 'srcDoc'),
+            ], [
+                Input('latitude', 'data'),
+                Input('longitude', 'data'),
+                Input('projection_from_select', 'value'),
+            ]
+        )
+        def set_map(latitude, longitude, projection_from):
+            try:
+                if latitude is None or longitude is None or projection_from is None or projection_from != "epsg:4284":
+                    return [None]
+                correct_latitude, correct_longitude = trans(latitude, longitude, projection_from, "epsg:4326")
+                map_frame = folium.Map(location=[0, 0], zoom_start=3)
+                marker_cluster = MarkerCluster().add_to(map_frame)
+                folium.Marker(
+                    location=[correct_latitude, correct_longitude],
+                    popup='Point',
+                    icon=folium.Icon(color="blue")
+                ).add_to(marker_cluster)
+                return [map_frame._repr_html_()]
+            except Exception as e:
+                print(traceback.format_exc())
+                return [None]
 
     def save_excel_file(self, client_address, file: dict):
         directory_path = self.refresh_or_create_directory(client_address, 'excel')

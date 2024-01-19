@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import html
 
-from src.coordinate_transformer import projections
+from src.coordinate_transformer import projections_dict
 
 choose_form_label = html.Div("Параметры пересчета")
 projections_from_label = html.Div("Исходная проекция")
@@ -11,7 +11,7 @@ projections_from_form = html.Div(children=[projections_from_label, projections_f
                                  className="row-between")
 projections_to_label = html.Div("Ключевая проекция")
 projections_to_input = dbc.Select(
-    options=[{'label': proj.comment, 'value': proj.mnemonic} for proj in projections],
+    options=[{'label': proj.comment, 'value': proj.mnemonic} for proj in projections_dict.values()],
     id='projection_to_select'
 )
 projections_to_value = html.Div(id='projection_to_value')

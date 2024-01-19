@@ -10,7 +10,8 @@ from folium.plugins import MarkerCluster
 
 from src.app.components import *
 from src.config import Config
-from src.coordinate_transformer import BaseTransformException, Metrics, projections, trans, trans_excel
+from src.coordinate_transformer import (projections_dict, trans_excel, CoordinateTransformer, BaseTransformException,
+                                        Metrics)
 from src.logger import log
 
 
@@ -76,9 +77,10 @@ class ApplicationServer:
             try:
                 log.debug(f"{request.remote_addr} is transforming (latitude: {latitude}, longitude: {longitude}) "
                           f"for projections (from: {projection_from}, to: {projection_to})")
-                lat4, long4 = trans(latitude, longitude, projection_from, projection_to)
-                log.debug(f"Got {lat4, long4}")
-                return str(lat4), str(long4), ''
+                transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict[projection_to])
+                result_latitude, result_longitude = transformer.transform(latitude, longitude)
+                log.debug(f"Got {result_latitude, result_longitude}")
+                return str(result_latitude), str(result_longitude), ''
             except BaseTransformException as e:
                 log.error(e.message)
                 return None, None, e.message
@@ -121,7 +123,10 @@ class ApplicationServer:
         def select_input_form(metric):
             if metric is None:
                 raise PreventUpdate
-            projections_from = list(filter(lambda projection: metric in projection.allowed_metrics, projections))
+            projections = projections_dict.values()
+            projections_from = list(filter(
+                lambda projection: metric in projection.allowed_metrics and not projection.disabled, projections
+            ))
             projections_from_options = [{'label': proj.comment, 'value': proj.mnemonic} for proj in projections_from]
             if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
                 return input_numeric_form, projections_from_options, None
@@ -180,7 +185,7 @@ class ApplicationServer:
             if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
                 return [None]
             if angle is not None and minutes is not None and seconds is not None:
-                return [angle + minutes/60.0 + seconds/3600.0]
+                return [angle + minutes / 60.0 + seconds / 3600.0]
             return [None]
 
         @callback(
@@ -257,9 +262,10 @@ class ApplicationServer:
         )
         def set_map(latitude, longitude, projection_from):
             try:
-                if latitude is None or longitude is None or projection_from is None or projection_from != "epsg:4284":
+                if latitude is None or longitude is None or projection_from is None:
                     return [None]
-                correct_latitude, correct_longitude = trans(latitude, longitude, projection_from, "epsg:4326")
+                transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
+                correct_latitude, correct_longitude = transformer.transform(latitude, longitude)
                 map_frame = folium.Map(location=[0, 0], zoom_start=3)
                 marker_cluster = MarkerCluster().add_to(map_frame)
                 folium.Marker(
@@ -267,8 +273,10 @@ class ApplicationServer:
                     popup='Point',
                     icon=folium.Icon(color="blue")
                 ).add_to(marker_cluster)
+                # TODO Придумать как возвращать карту не через этот метод
                 return [map_frame._repr_html_()]
             except Exception as e:
+                log.exception(e)
                 print(traceback.format_exc())
                 return [None]
 

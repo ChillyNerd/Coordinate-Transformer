@@ -1,6 +1,7 @@
 import base64
 import os
 import traceback
+import logging
 
 import folium
 from dash import Dash, html, Input, Output, callback, State, dcc
@@ -12,7 +13,6 @@ from src.app.components import *
 from src.config import Config
 from src.coordinate_transformer import (projections_dict, trans_excel, CoordinateTransformer, BaseTransformException,
                                         Metrics)
-from src.logger import log
 
 
 class ApplicationServer:
@@ -42,6 +42,7 @@ class ApplicationServer:
             className="column-gap"
         )
         self.init_callbacks()
+        self.log = logging.getLogger(config.application_server)
 
     def init_callbacks(self):
         @callback(
@@ -75,17 +76,18 @@ class ApplicationServer:
             if latitude is None or longitude is None or projection_from is None or projection_to is None:
                 return None, None, None
             try:
-                log.debug(f"{request.remote_addr} is transforming (latitude: {latitude}, longitude: {longitude}) "
-                          f"for projections (from: {projection_from}, to: {projection_to})")
-                transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict[projection_to])
+                from_, to_ = projections_dict[projection_from], projections_dict[projection_to]
+                transformer = CoordinateTransformer(from_, to_)
                 result_latitude, result_longitude = transformer.transform(latitude, longitude)
-                log.debug(f"Got {result_latitude, result_longitude}")
+                from_string = f'{latitude, longitude} {from_.comment} ({projection_from})'
+                to_string = f'{result_latitude, result_longitude} {to_.comment} ({projection_to})'
+                self.log.info(f"{request.remote_addr} transformed from {from_string} to {to_string}")
                 return str(result_latitude), str(result_longitude), ''
             except BaseTransformException as e:
-                log.error(e.message)
+                self.log.error(e.message)
                 return None, None, e.message
             except Exception as e:
-                log.exception(e)
+                self.log.exception(e)
                 return None, None, traceback.format_exc()
 
         @callback(
@@ -245,10 +247,10 @@ class ApplicationServer:
             try:
                 file = {'filename': file_name, 'content': file_content}
                 path = self.save_excel_file(request.remote_addr, file)
-                log.debug(f'{request.remote_addr} successfully uploaded excel file {file_name}')
+                self.log.debug(f'{request.remote_addr} successfully uploaded excel file {file_name}')
                 return path, None
             except Exception as ex:
-                log.exception(ex)
+                self.log.exception(ex)
                 return None, traceback.format_exc()
 
         @callback(
@@ -276,7 +278,7 @@ class ApplicationServer:
                 # TODO Придумать как возвращать карту не через этот метод
                 return [map_frame._repr_html_()]
             except Exception as e:
-                log.exception(e)
+                self.log.exception(e)
                 print(traceback.format_exc())
                 return [None]
 

@@ -23,7 +23,6 @@ class Graph:
         for node in self._graph_dict[start_vertex]:
             if node not in path:
                 new_path = self.find_path(node, end_vertex, path)
-                if new_path:
-                    if not shortest or len(new_path) < len(shortest):
-                        shortest = new_path
+                if new_path and (not shortest or len(new_path) < len(shortest)):
+                    shortest = new_path
         return shortest

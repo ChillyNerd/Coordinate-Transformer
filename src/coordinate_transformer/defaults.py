@@ -31,7 +31,7 @@ meter_metrics = [Metrics.METER]
 
 intermediate_projections = [
     Projection("epsg:4326", "WGS84", ProjectionType.WGS, angle_metrics),
-    Projection("epsg:9475", "ПЗ 90.11", ProjectionType.PZ, angle_metrics, True),
+    Projection("epsg:9475", "ПЗ 90.11", ProjectionType.PZ, angle_metrics, disabled=True),
     Projection("epsg:4284", "Пулково 1942/Широта/Долгота", ProjectionType.PULKOVO, angle_metrics),
     Projection("epsg:7683", "ГСК-2011/GSK-2011", ProjectionType.GSK, angle_metrics),
 ]

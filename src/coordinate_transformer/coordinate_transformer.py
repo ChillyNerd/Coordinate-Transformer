@@ -1,11 +1,12 @@
+import logging
+
 from pyproj import Transformer
 from pyproj.enums import TransformDirection
-from typing import List
 from src.coordinate_transformer.transform_exception import NotImplementedYet
 from src.coordinate_transformer.impl import Projection
 from src.coordinate_transformer.enums import ProjectionType
 from src.coordinate_transformer.defaults import dependencies, intermediate_projections_dict, pulkovo_to_pz, gsk_to_pz
-from src.logger import log
+from src.config import Config
 
 
 class TransformNode:
@@ -14,56 +15,66 @@ class TransformNode:
         self.mnemonic: str = mnemonic
 
 
-class TransformStep:
+class StepTransformer:
     def __init__(self, projection_from: TransformNode, projection_to: TransformNode):
-        self.projection_from: TransformNode = projection_from
-        self.projection_to: TransformNode = projection_to
+        self.from_: TransformNode = projection_from
+        self.to_: TransformNode = projection_to
+        self.log = logging.getLogger(Config.coordinate_transformer)
 
     def transform(self, latitude, longitude):
         direction = TransformDirection.FORWARD
-        if self.projection_from.type == ProjectionType.PULKOVO and self.projection_to.type == ProjectionType.PZ:
+        if self.from_.type == ProjectionType.PULKOVO and self.to_.type == ProjectionType.PZ:
             transformer = Transformer.from_pipeline(pulkovo_to_pz)
-        elif self.projection_from.type == ProjectionType.PZ and self.projection_to.type == ProjectionType.PULKOVO:
+            pipeline = f'Using PULKOVO to PZ pipeline'
+        elif self.from_.type == ProjectionType.PZ and self.to_.type == ProjectionType.PULKOVO:
             transformer = Transformer.from_pipeline(pulkovo_to_pz)
             direction = TransformDirection.INVERSE
-        elif self.projection_from.type == ProjectionType.GSK and self.projection_to.type == ProjectionType.PZ:
+            pipeline = f'Using inversed PULKOVO to PZ pipeline'
+        elif self.from_.type == ProjectionType.GSK and self.to_.type == ProjectionType.PZ:
             transformer = Transformer.from_pipeline(gsk_to_pz)
-        elif self.projection_from.type == ProjectionType.PZ and self.projection_to.type == ProjectionType.GSK:
+            pipeline = f'Using GSK to PZ pipeline'
+        elif self.from_.type == ProjectionType.PZ and self.to_.type == ProjectionType.GSK:
             transformer = Transformer.from_pipeline(gsk_to_pz)
             direction = TransformDirection.INVERSE
+            pipeline = f'Using inversed GSK to PZ pipeline'
         else:
-            transformer = Transformer.from_crs(self.projection_from.mnemonic, self.projection_to.mnemonic)
-        return transformer.transform(latitude, longitude, direction=direction)
+            transformer = Transformer.from_crs(self.from_.mnemonic, self.to_.mnemonic)
+            pipeline = f'Using common transformer'
+        transformed_from = f'{latitude, longitude} {self.from_.type.name} ({self.from_.mnemonic})'
+        result_latitude, result_longitude = transformer.transform(latitude, longitude, direction=direction)
+        transformed_to = f'{result_latitude, result_longitude} {self.to_.type.name} ({self.to_.mnemonic})'
+        self.log.debug(f'{pipeline} transformed from {transformed_from} to {transformed_to}')
+        return result_latitude, result_longitude
 
 
 class CoordinateTransformer:
     def __init__(self, projection_from: Projection, projection_to: Projection):
-        self.projection_from: TransformNode = TransformNode(projection_from.projection_type, projection_from.mnemonic)
-        self.projection_to: TransformNode = TransformNode(projection_to.projection_type, projection_to.mnemonic)
+        self.from_: TransformNode = TransformNode(projection_from.projection_type, projection_from.mnemonic)
+        self.to_: TransformNode = TransformNode(projection_to.projection_type, projection_to.mnemonic)
+        self.transform_path = dependencies.find_path(
+            self.from_.type,
+            self.to_.type
+        )
+        if self.transform_path is None:
+            raise NotImplementedYet()
 
     def transform(self, latitude, longitude):
-        transform_path = dependencies.find_path(
-            self.projection_from.type,
-            self.projection_to.type
-        )
-        if transform_path is None:
-            raise NotImplementedYet()
-        log.debug(f'Transform path is {"->".join(list(map(lambda node: f"({node.value})", transform_path)))}')
-        return self.transform_sequence(transform_path, latitude, longitude)
-
-    def transform_sequence(self, path: List[ProjectionType], latitude, longitude):
         current_latitude, current_longitude = latitude, longitude
-        for i in range(len(path) - 1):
+        steps = len(self.transform_path) - 1
+        for i in range(steps):
+
             if i == 0:
-                projection_from = TransformNode(self.projection_from.type, self.projection_from.mnemonic)
+                projection_from = self.from_
             else:
-                projection_from = TransformNode(path[i], intermediate_projections_dict[path[i]])
-            if i == len(path) - 2:
-                projection_to = TransformNode(self.projection_to.type, self.projection_to.mnemonic)
+                from_ = self.transform_path[i]
+                projection_from = TransformNode(from_, intermediate_projections_dict[from_])
+            if i == steps - 1:
+                projection_to = self.to_
             else:
-                projection_to = TransformNode(path[i + 1], intermediate_projections_dict[path[i + 1]])
-            step = TransformStep(projection_from, projection_to)
-            current_latitude, current_longitude = step.transform(current_latitude, current_longitude)
+                to_ = self.transform_path[i + 1]
+                projection_to = TransformNode(to_, intermediate_projections_dict[to_])
+            transform_step = StepTransformer(projection_from, projection_to)
+            current_latitude, current_longitude = transform_step.transform(current_latitude, current_longitude)
         return current_latitude, current_longitude
 
 

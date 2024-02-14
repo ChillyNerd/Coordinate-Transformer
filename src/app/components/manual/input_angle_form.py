@@ -30,4 +30,4 @@ longitude_form_children = [longitude_angle_input, longitude_angle_label, longitu
 latitude_angle_form = html.Div(children=longitude_form_children, className="row-gap")
 longitude_form = html.Div(children=[longitude_label, latitude_angle_form], className='row-between')
 
-form = html.Div(children=[latitude_form, longitude_form], className='column-gap')
+form = html.Div(children=[latitude_form, longitude_form], className='column-gap', id='input_angle_form')

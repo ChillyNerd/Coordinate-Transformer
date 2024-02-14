@@ -62,7 +62,6 @@ class CoordinateTransformer:
         current_latitude, current_longitude = latitude, longitude
         steps = len(self.transform_path) - 1
         for i in range(steps):
-
             if i == 0:
                 projection_from = self.from_
             else:

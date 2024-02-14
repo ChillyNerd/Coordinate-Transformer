@@ -1,8 +1,10 @@
 import base64
+import logging
 import os
 import traceback
-import logging
 
+import dash_bootstrap_components as dbc
+import dash_split_pane
 import folium
 from dash import Dash, html, Input, Output, callback, State, dcc
 from dash.exceptions import PreventUpdate
@@ -18,11 +20,41 @@ from src.coordinate_transformer import (projections_dict, trans_excel, Coordinat
 class ApplicationServer:
     def __init__(self, config: Config):
         self.config = config
-        self.app = Dash(__name__, update_title=None, title='Калькулятор координат')
-        common_form = html.Div(children=[input_form, choose_form, output_form], className="row-between common-form")
-        file_form = html.Div(children=[input_excel_form, output_excel_form], className="row-between file-form")
-        map_form = html.Iframe(id="map", width="1300", height="700")
+        self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
+                        external_stylesheets=[dbc.themes.BOOTSTRAP])
+        self.hidden = 'component-hidden'
+        manual_form = html.Div(children=[input_form, output_form], className="column-gap manual-form")
+        file_form = html.Div(children=[input_excel_form, output_excel_form], className="column-gap file-form")
+        tabs = dbc.Tabs(
+            [
+                dbc.Tab(
+                    manual_form,
+                    label='Ручной ввод',
+                    label_class_name='display-4',
+                    tab_id='manual_tab'
+                ),
+                dbc.Tab(
+                    file_form,
+                    label='Excel',
+                    label_class_name='display-4',
+                    tab_id='excel_tab'
+                )
+            ],
+            active_tab='manual_tab',
+            id='tabs_select'
+        )
         error_form = html.Div(id='error', className='column-gap')
+        calculation_form = html.Div(children=[choose_form, tabs, error_form], className='column-gap')
+        map_form = html.Iframe(id="map", height="100%", width='100%', style={'padding-left': "10px"})
+        layout_form = dash_split_pane.DashSplitPane(
+            children=[calculation_form, map_form],
+            id="splitter",
+            split="vertical",
+            minSize=400,
+            size=600,
+            maxSize=800,
+            style={'padding': "5px"}
+        )
         self.app.layout = html.Div(
             children=[
                 dcc.Store(id='latitude'),
@@ -32,12 +64,11 @@ class ApplicationServer:
                 dcc.Store(id='angle_latitude'),
                 dcc.Store(id='angle_longitude'),
                 dcc.Store(id='excel_file'),
+                dcc.Store(id='points'),
+                dcc.Store(id='manual_points'),
                 dcc.Store(id='transform_error'),
                 dcc.Store(id='excel_upload_error'),
-                common_form,
-                file_form,
-                map_form,
-                error_form
+                layout_form,
             ],
             className="column-gap"
         )
@@ -62,8 +93,8 @@ class ApplicationServer:
 
         @callback(
             [
-                Output('lat4_value', 'children'),
-                Output('long4_value', 'children'),
+                Output('result_latitude', 'children'),
+                Output('result_longitude', 'children'),
                 Output('transform_error', 'data')
             ], [
                 Input('latitude', 'data'),
@@ -91,50 +122,57 @@ class ApplicationServer:
                 return None, None, traceback.format_exc()
 
         @callback(
-            Output('output_excel', 'children'),
-            Input('excel_file', 'data')
+            [
+                Output('manual-output-form', 'className')
+            ], [
+                Input('result_latitude', 'children'),
+                Input('result_longitude', 'children'),
+                State('manual-output-form', 'className')
+            ]
         )
-        def read_excel(excel_file):
-            if excel_file is None:
-                return None
-            return trans_excel(excel_file)
-
-        @callback(
-            Output('projection_from_value', 'children'),
-            Input('projection_from_select', 'value')
-        )
-        def select_projection_from(projection_from):
-            return projection_from
-
-        @callback(
-            Output('projection_to_value', 'children'),
-            Input('projection_to_select', 'value')
-        )
-        def select_projection_to(projection_to):
-            return projection_to
+        def read_excel(result_latitude, result_longitude, class_names):
+            classes = class_names.split()
+            if result_latitude is None or result_longitude is None:
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
 
         @callback(
             [
-                Output('input_form', 'children'),
                 Output('projection_from_select', 'options'),
-                Output('projection_from_select', 'value')
+                Output('projection_from_select', 'value'),
+                Output('input_angle_form', 'className'),
+                Output('input_numeric_form', 'className')
             ], [
-                Input('metrics_select', 'value')
+                Input('metrics_select', 'value'),
+                State('input_angle_form', 'className'),
+                State('input_numeric_form', 'className'),
             ]
         )
-        def select_input_form(metric):
+        def select_input_form(metric, angle_class_name, numeric_class_name):
             if metric is None:
                 raise PreventUpdate
+            angle_classes = angle_class_name.split()
+            numeric_classes = numeric_class_name.split()
             projections = projections_dict.values()
             projections_from = list(filter(
                 lambda projection: metric in projection.allowed_metrics and not projection.disabled, projections
             ))
             projections_from_options = [{'label': proj.comment, 'value': proj.mnemonic} for proj in projections_from]
             if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
-                return input_numeric_form, projections_from_options, None
+                if self.hidden not in angle_classes:
+                    angle_classes.append(self.hidden)
+                if self.hidden in numeric_classes:
+                    numeric_classes = list(filter(lambda class_name: class_name != self.hidden, numeric_classes))
             if metric == Metrics.ANGLE.name:
-                return input_angle_form, projections_from_options, None
-            raise PreventUpdate
+                if self.hidden in angle_classes:
+                    angle_classes = list(filter(lambda class_name: class_name != self.hidden, angle_classes))
+                if self.hidden not in numeric_classes:
+                    numeric_classes.append(self.hidden)
+            return projections_from_options, None, ' '.join(angle_classes), ' '.join(numeric_classes)
 
         @callback(
             Output('numeric_longitude', 'data'),
@@ -247,40 +285,73 @@ class ApplicationServer:
             try:
                 file = {'filename': file_name, 'content': file_content}
                 path = self.save_excel_file(request.remote_addr, file)
-                self.log.debug(f'{request.remote_addr} successfully uploaded excel file {file_name}')
+                self.log.info(f'{request.remote_addr} successfully uploaded excel file {file_name}')
                 return path, None
             except Exception as ex:
                 self.log.exception(ex)
                 return None, traceback.format_exc()
 
         @callback(
+            Output('output_excel', 'children'),
+            Input('excel_file', 'data')
+        )
+        def read_excel(excel_file):
+            if excel_file is None:
+                return None
+            return trans_excel(excel_file)
+
+        @callback(
             [
-                Output('map', 'srcDoc'),
+                Output('manual_points', 'data'),
             ], [
                 Input('latitude', 'data'),
                 Input('longitude', 'data'),
                 Input('projection_from_select', 'value'),
+                Input('tabs_select', 'active_tab'),
             ]
         )
-        def set_map(latitude, longitude, projection_from):
+        def set_manual_points(latitude, longitude, projection_from, selected_tab):
+            points = []
             try:
-                if latitude is None or longitude is None or projection_from is None:
-                    return [None]
+                if latitude is None or longitude is None or projection_from is None or selected_tab != 'manual_tab':
+                    return [points]
                 transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
                 correct_latitude, correct_longitude = transformer.transform(latitude, longitude)
-                map_frame = folium.Map(location=[0, 0], zoom_start=3)
-                marker_cluster = MarkerCluster().add_to(map_frame)
-                folium.Marker(
-                    location=[correct_latitude, correct_longitude],
-                    popup='Point',
-                    icon=folium.Icon(color="blue")
-                ).add_to(marker_cluster)
-                # TODO Придумать как возвращать карту не через этот метод
-                return [map_frame._repr_html_()]
+                point = {'latitude': correct_latitude, 'longitude': correct_longitude, 'id': '0'}
+                points.append(point)
+                return [points]
             except Exception as e:
                 self.log.exception(e)
                 print(traceback.format_exc())
-                return [None]
+                return [points]
+
+        @callback(
+            Output('points', 'data'),
+            Input('manual_points', 'data'),
+            State('tabs_select', 'active_tab')
+        )
+        def set_points(manual_points, selected_tab):
+            if selected_tab == 'manual_tab':
+                return manual_points
+            return []
+
+        @callback(
+            Output('map', 'srcDoc'),
+            Input('points', 'data')
+        )
+        def set_map(points):
+            if points is None:
+                points = []
+            map_frame = folium.Map(location=[0, 0], zoom_start=2)
+            marker_cluster = MarkerCluster().add_to(map_frame)
+            for point in points:
+                folium.Marker(
+                    location=[point['latitude'], point['longitude']],
+                    popup=f'Point {point["id"]}',
+                    icon=folium.Icon(color="blue")
+                ).add_to(marker_cluster)
+            # TODO Придумать как возвращать карту не через этот метод
+            return map_frame._repr_html_()
 
     def save_excel_file(self, client_address, file: dict):
         directory_path = self.refresh_or_create_directory(client_address, 'excel')

@@ -1,6 +1,7 @@
-dash~=2.14.2
+dash~=2.15.0
 dash-bootstrap-components==1.5.0
-pyproj~=3.6.1
-PyYAML==5.4.1
+dash-split-pane~=1.0.0
 flask~=2.3.3
 folium~=0.15.1
+pyproj~=3.6.1
+PyYAML==5.4.1

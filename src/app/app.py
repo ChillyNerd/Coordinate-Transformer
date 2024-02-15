@@ -1,79 +1,39 @@
 import base64
 import logging
 import os
+import shutil
 import traceback
 
 import dash_bootstrap_components as dbc
-import dash_split_pane
 import folium
-from dash import Dash, html, Input, Output, callback, State, dcc
+from dash import Dash, html, Input, Output, callback, State
 from dash.exceptions import PreventUpdate
-from flask import request
+from flask import Flask, request
 from folium.plugins import MarkerCluster
-
-from src.app.components import *
+from src.app.components import layout
 from src.config import Config
-from src.coordinate_transformer import (projections_dict, trans_excel, CoordinateTransformer, BaseTransformException,
-                                        Metrics)
+from src.coordinate_transformer import (projections_dict, CoordinateTransformer, BaseTransformException, Metrics)
 
 
 class ApplicationServer:
     def __init__(self, config: Config):
         self.config = config
-        self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
-                        external_stylesheets=[dbc.themes.BOOTSTRAP])
-        self.hidden = 'component-hidden'
-        manual_form = html.Div(children=[input_form, output_form], className="column-gap manual-form")
-        file_form = html.Div(children=[input_excel_form, output_excel_form], className="column-gap file-form")
-        tabs = dbc.Tabs(
-            [
-                dbc.Tab(
-                    manual_form,
-                    label='Ручной ввод',
-                    label_class_name='display-4',
-                    tab_id='manual_tab'
-                ),
-                dbc.Tab(
-                    file_form,
-                    label='Excel',
-                    label_class_name='display-4',
-                    tab_id='excel_tab'
-                )
-            ],
-            active_tab='manual_tab',
-            id='tabs_select'
-        )
-        error_form = html.Div(id='error', className='column-gap')
-        calculation_form = html.Div(children=[choose_form, tabs, error_form], className='column-gap')
-        map_form = html.Iframe(id="map", height="100%", width='100%', style={'padding-left': "10px"})
-        layout_form = dash_split_pane.DashSplitPane(
-            children=[calculation_form, map_form],
-            id="splitter",
-            split="vertical",
-            minSize=400,
-            size=600,
-            maxSize=800,
-            style={'padding': "5px"}
-        )
-        self.app.layout = html.Div(
-            children=[
-                dcc.Store(id='latitude'),
-                dcc.Store(id='longitude'),
-                dcc.Store(id='numeric_latitude'),
-                dcc.Store(id='numeric_longitude'),
-                dcc.Store(id='angle_latitude'),
-                dcc.Store(id='angle_longitude'),
-                dcc.Store(id='excel_file'),
-                dcc.Store(id='points'),
-                dcc.Store(id='manual_points'),
-                dcc.Store(id='transform_error'),
-                dcc.Store(id='excel_upload_error'),
-                layout_form,
-            ],
-            className="column-gap"
-        )
-        self.init_callbacks()
         self.log = logging.getLogger(config.application_server)
+        self.flask_app = Flask(__name__)
+        self.init_close_callback()
+        self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
+                        external_stylesheets=[dbc.themes.BOOTSTRAP], server=self.flask_app)
+        self.hidden = 'component-hidden'
+        self.app.layout = layout
+        self.init_callbacks()
+
+    def init_close_callback(self):
+        @self.flask_app.route('/client-close', methods=['POST'])
+        def handle_client_close():
+            client = request.remote_addr
+            self.log.debug(f"Client {client} has closed application")
+            self.delete_clients_repo(client)
+            return '', 200
 
     def init_callbacks(self):
         @callback(
@@ -123,16 +83,17 @@ class ApplicationServer:
 
         @callback(
             [
-                Output('manual-output-form', 'className')
+                Output('output-manual-form', 'className')
             ], [
                 Input('result_latitude', 'children'),
                 Input('result_longitude', 'children'),
-                State('manual-output-form', 'className')
+                Input('tabs_select', 'active_tab'),
+                State('output-manual-form', 'className')
             ]
         )
-        def read_excel(result_latitude, result_longitude, class_names):
+        def show_manual_result(result_latitude, result_longitude, active_tab, class_names):
             classes = class_names.split()
-            if result_latitude is None or result_longitude is None:
+            if result_latitude is None or result_longitude is None or active_tab != 'manual_tab':
                 if self.hidden not in classes:
                     classes.append(self.hidden)
             else:
@@ -273,32 +234,59 @@ class ApplicationServer:
                 return -90, 90, -180, 180
             return None, None, None, None
 
-        @callback(
+        @callback([
             Output('excel_file', 'data'),
-            Output('excel_upload_error', 'data'),
+            Output('excel_file_name', 'children'),
+            Output('excel_upload_error', 'data')
+        ], [
             Input('upload_excel_file', 'contents'),
             State('upload_excel_file', 'filename')
-        )
+        ])
         def upload_excel_file(file_content, file_name):
             if not file_name:
-                return None, None
+                return None, 'Выберите файл', None
             try:
                 file = {'filename': file_name, 'content': file_content}
                 path = self.save_excel_file(request.remote_addr, file)
-                self.log.info(f'{request.remote_addr} successfully uploaded excel file {file_name}')
-                return path, None
+                self.log.info(f'{request.remote_addr} successfully uploaded excel_input excel_input {file_name}')
+                return path, file_name, None
             except Exception as ex:
                 self.log.exception(ex)
-                return None, traceback.format_exc()
+                return None, 'Выберите файл', traceback.format_exc()
 
         @callback(
-            Output('output_excel', 'children'),
-            Input('excel_file', 'data')
+            [
+                Output('upload_excel_file', 'contents'),
+                Output('upload_excel_file', 'filename')
+            ], [
+                Input('delete_excel_file', 'n_clicks')
+            ])
+        def clear_excel_file(clicks):
+            if clicks:
+                self.delete_files(request.remote_addr, 'excel_input')
+                return None, None
+            else:
+                raise PreventUpdate
+
+        @callback([
+            Output('output-excel-form', 'className')
+        ], [
+            Input('excel_file', 'data'),
+            Input('tabs_select', 'active_tab'),
+            State('projection_from_select', 'value'),
+            State('projection_to_select', 'value'),
+            State('output-excel-form', 'className')
+        ]
         )
-        def read_excel(excel_file):
-            if excel_file is None:
-                return None
-            return trans_excel(excel_file)
+        def read_excel(excel_file, active_tab, projection_from, projection_to, output_classes):
+            classes = output_classes.split()
+            if excel_file is None or projection_from is None or projection_to is None or active_tab != 'excel_tab':
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
 
         @callback(
             [
@@ -317,7 +305,7 @@ class ApplicationServer:
                     return [points]
                 transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
                 correct_latitude, correct_longitude = transformer.transform(latitude, longitude)
-                point = {'latitude': correct_latitude, 'longitude': correct_longitude, 'id': '0'}
+                point = {'latitude': correct_latitude, 'longitude': correct_longitude, 'id': 1}
                 points.append(point)
                 return [points]
             except Exception as e:
@@ -347,14 +335,14 @@ class ApplicationServer:
             for point in points:
                 folium.Marker(
                     location=[point['latitude'], point['longitude']],
-                    popup=f'Point {point["id"]}',
+                    popup=f'{point["id"]}',
                     icon=folium.Icon(color="blue")
                 ).add_to(marker_cluster)
             # TODO Придумать как возвращать карту не через этот метод
             return map_frame._repr_html_()
 
     def save_excel_file(self, client_address, file: dict):
-        directory_path = self.refresh_or_create_directory(client_address, 'excel')
+        directory_path = self.refresh_or_create_directory(client_address, 'excel_input')
         return self.save_file(directory_path, file['filename'], file['content'])
 
     def refresh_or_create_directory(self, client_address, file_type: str):
@@ -376,3 +364,18 @@ class ApplicationServer:
         with open(file_path, "wb") as fp:
             fp.write(base64.decodebytes(data))
         return file_path
+
+    def delete_clients_repo(self, client_address):
+        client_path = os.path.join(self.config.files_path, client_address)
+        if os.path.exists(client_path):
+            shutil.rmtree(client_path)
+
+    def delete_files(self, client_address, file_type):
+        client_path = os.path.join(self.config.files_path, client_address)
+        if os.path.exists(client_path):
+            files_path = os.path.join(client_path, file_type)
+            if os.path.exists(files_path):
+                content = os.listdir(files_path)
+                for file in content:
+                    os.remove(os.path.join(files_path, file))
+                os.rmdir(files_path)

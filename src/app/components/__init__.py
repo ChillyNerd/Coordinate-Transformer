@@ -1,5 +1,20 @@
-from src.app.components.manual.choose_form import form as choose_form
-from src.app.components.manual.input_form import form as input_form
-from src.app.components.manual.output_form import form as output_form
-from src.app.components.file.input_excel_form import form as input_excel_form
-from src.app.components.file.output_excel_form import form as output_excel_form
+from dash import html, dcc
+from src.app.components.split.split import split_pane
+
+layout = html.Div(
+    children=[
+        dcc.Store(id='latitude'),
+        dcc.Store(id='longitude'),
+        dcc.Store(id='numeric_latitude'),
+        dcc.Store(id='numeric_longitude'),
+        dcc.Store(id='angle_latitude'),
+        dcc.Store(id='angle_longitude'),
+        dcc.Store(id='excel_file'),
+        dcc.Store(id='points'),
+        dcc.Store(id='manual_points'),
+        dcc.Store(id='transform_error'),
+        dcc.Store(id='excel_upload_error'),
+        split_pane,
+    ],
+    className="column-gap"
+)

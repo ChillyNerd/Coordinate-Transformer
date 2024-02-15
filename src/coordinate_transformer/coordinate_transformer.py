@@ -76,6 +76,5 @@ class CoordinateTransformer:
             current_latitude, current_longitude = transform_step.transform(current_latitude, current_longitude)
         return current_latitude, current_longitude
 
-
-def trans_excel(file_path: str):
-    return file_path
+    def transform_excel(self, file_path: str):
+        return file_path

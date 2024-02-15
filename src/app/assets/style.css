@@ -13,35 +13,45 @@
 .row-gap {
     display: flex;
     flex-direction: row;
-    gap: 3px;
+    gap: 5px;
 }
 
-.row {
+.long-gap {
+    gap: 10px;
+}
+
+.flex-row {
     display: flex;
     flex-direction: row;
 }
 
-.input-form {
-    padding: 5px;
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.upload-excel-form {
+    align-items: center;
+}
+
+.align-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-excel-file {
+    width: 140px;
+}
+
+.delete-excel-file {
+   width: 38px;
+   height: 38px;
+   font-weight: bold;
 }
 
 .angle-input-form {
     width: 60px;
-}
-
-.output-form {
-    border-top: 1px solid gray;
-    padding: 5px;
-}
-
-.output-excel-form {
-    padding: 5px;
-}
-
-.choose-form {
-    padding: 5px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid gray;
 }
 
 .metric-select {
@@ -67,4 +77,15 @@
 
 .component-hidden {
     display: None;
+}
+
+.file-name {
+    flex: auto;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.small-padding {
+    padding: 5px;
 }

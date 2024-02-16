@@ -299,14 +299,13 @@ class ApplicationServer:
                 return [], None
             try:
                 transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
-                points = transformer.transform_excel(excel_file)
+                return transformer.transform_excel(excel_file), None
             except BaseTransformException as ex:
                 self.log.exception(ex)
                 return [], ex.message
             except Exception as ex:
                 self.log.exception(ex)
                 return [], traceback.format_exc()
-            return [{'longitude': 1, 'latitude': 1, 'id': 1}], None
 
         @callback(
             [

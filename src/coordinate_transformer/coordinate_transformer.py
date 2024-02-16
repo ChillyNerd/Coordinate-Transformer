@@ -83,4 +83,9 @@ class CoordinateTransformer:
         if file_ext.lower() not in ['.xlsx', '.xls']:
             raise FileIsNotExcel()
         excel_table = pd.read_excel(file_path)
-        return file_path
+        points = []
+        for index, row in excel_table.iterrows():
+            latitude, longitude = self.transform(row.iloc[0], row.iloc[1])
+            point = {'latitude': latitude, 'longitude': longitude, 'id': index}
+            points.append(point)
+        return points

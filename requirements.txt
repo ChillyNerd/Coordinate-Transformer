@@ -4,4 +4,6 @@ dash-split-pane~=1.0.0
 flask~=2.3.3
 folium~=0.15.1
 pyproj~=3.6.1
-PyYAML==5.4.1
+PyYAML~=5.4.1
+pandas~=2.1.4
+openpyxl~=3.1.2

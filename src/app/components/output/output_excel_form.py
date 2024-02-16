@@ -1,5 +1,5 @@
-from dash import html
+import dash_bootstrap_components as dbc
+from dash import dcc, html
 
-output_form_label = html.Div("Результат")
-output_form_value = html.Div(id='output_excel')
-form = html.Div(children=[output_form_label, output_form_value], className="column-gap", id='output-excel-form')
+download_button = dbc.Button('Пересчет', id='download_excel_file', className="download-excel-file")
+form = html.Div(children=[download_button], className="border-top padding-top", id='output_manual_form')

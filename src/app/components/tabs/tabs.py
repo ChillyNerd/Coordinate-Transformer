@@ -1,4 +1,5 @@
 import dash_bootstrap_components as dbc
+from dash import html
 
 from src.app.components.input.input_excel_form import form as input_excel_form
 from src.app.components.input.input_manual_form import form as input_manual_form
@@ -21,3 +22,4 @@ tabs = dbc.Tabs(
     active_tab='manual_tab',
     id='tabs_select'
 )
+input_tab_form = html.Div(children=[tabs], className="column-gap", id="input_tabs")

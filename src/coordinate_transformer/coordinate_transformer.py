@@ -1,8 +1,10 @@
 import logging
 
+import os
+import pandas as pd
 from pyproj import Transformer
 from pyproj.enums import TransformDirection
-from src.coordinate_transformer.transform_exception import NotImplementedYet
+from src.coordinate_transformer.transform_exception import NotImplementedYet, FileIsNotExcel
 from src.coordinate_transformer.impl import Projection
 from src.coordinate_transformer.enums import ProjectionType
 from src.coordinate_transformer.defaults import dependencies, intermediate_projections_dict, pulkovo_to_pz, gsk_to_pz
@@ -77,4 +79,8 @@ class CoordinateTransformer:
         return current_latitude, current_longitude
 
     def transform_excel(self, file_path: str):
+        file_ext = os.path.splitext(file_path)[1]
+        if file_ext.lower() not in ['.xlsx', '.xls']:
+            raise FileIsNotExcel()
+        excel_table = pd.read_excel(file_path)
         return file_path

@@ -19,34 +19,34 @@ class ApplicationServer:
     def __init__(self, config: Config):
         self.config = config
         self.log = logging.getLogger(config.application_server)
-        self.flask_app = Flask(__name__)
-        self.init_close_callback()
         self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
-                        external_stylesheets=[dbc.themes.BOOTSTRAP], server=self.flask_app)
+                        external_stylesheets=[dbc.themes.BOOTSTRAP])
         self.hidden = 'component-hidden'
         self.app.layout = layout
         self.init_callbacks()
 
-    def init_close_callback(self):
-        @self.flask_app.route('/client-close', methods=['POST'])
+    def init_callbacks(self):
+        @self.app.server.route('/client-close', methods=['POST'])
         def handle_client_close():
             client = request.remote_addr
             self.log.debug(f"Client {client} has closed application")
             self.delete_clients_repo(client)
             return '', 200
 
-    def init_callbacks(self):
         @callback(
             Output('error', 'children'),
             Input('transform_error', 'data'),
-            Input('excel_upload_error', 'data')
+            Input('excel_upload_error', 'data'),
+            Input('excel_read_error', 'data')
         )
-        def set_error(transform_error, excel_upload_error):
+        def set_error(transform_error, excel_upload_error, excel_read_error):
             errors = []
             if transform_error is not None:
                 errors.append(transform_error)
             if excel_upload_error is not None:
                 errors.append(excel_upload_error)
+            if excel_read_error is not None:
+                errors.append(excel_read_error)
             if len(errors) == 0:
                 return None
             return list(map(lambda error: html.Div(error), errors))
@@ -248,7 +248,7 @@ class ApplicationServer:
             try:
                 file = {'filename': file_name, 'content': file_content}
                 path = self.save_excel_file(request.remote_addr, file)
-                self.log.info(f'{request.remote_addr} successfully uploaded excel_input excel_input {file_name}')
+                self.log.info(f'{request.remote_addr} successfully uploaded excel file {file_name}')
                 return path, file_name, None
             except Exception as ex:
                 self.log.exception(ex)
@@ -269,16 +269,16 @@ class ApplicationServer:
                 raise PreventUpdate
 
         @callback([
-            Output('output-excel-form', 'className')
+            Output('output_manual_form', 'className')
         ], [
             Input('excel_file', 'data'),
             Input('tabs_select', 'active_tab'),
-            State('projection_from_select', 'value'),
-            State('projection_to_select', 'value'),
-            State('output-excel-form', 'className')
+            Input('projection_from_select', 'value'),
+            Input('projection_to_select', 'value'),
+            State('output_manual_form', 'className')
         ]
         )
-        def read_excel(excel_file, active_tab, projection_from, projection_to, output_classes):
+        def show_excel_file(excel_file, active_tab, projection_from, projection_to, output_classes):
             classes = output_classes.split()
             if excel_file is None or projection_from is None or projection_to is None or active_tab != 'excel_tab':
                 if self.hidden not in classes:
@@ -287,6 +287,26 @@ class ApplicationServer:
                 if self.hidden in classes:
                     classes = list(filter(lambda class_name: class_name != self.hidden, classes))
             return [' '.join(classes)]
+
+        @callback(
+            Output('excel_points', 'data'),
+            Output('excel_read_error', 'data'),
+            Input('excel_file', 'data'),
+            Input('projection_from_select', 'value'),
+        )
+        def read_excel(excel_file, projection_from):
+            if excel_file is None:
+                return [], None
+            try:
+                transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
+                points = transformer.transform_excel(excel_file)
+            except BaseTransformException as ex:
+                self.log.exception(ex)
+                return [], ex.message
+            except Exception as ex:
+                self.log.exception(ex)
+                return [], traceback.format_exc()
+            return [{'longitude': 1, 'latitude': 1, 'id': 1}], None
 
         @callback(
             [
@@ -316,11 +336,14 @@ class ApplicationServer:
         @callback(
             Output('points', 'data'),
             Input('manual_points', 'data'),
+            Input('excel_points', 'data'),
             State('tabs_select', 'active_tab')
         )
-        def set_points(manual_points, selected_tab):
+        def set_points(manual_points, excel_points, selected_tab):
             if selected_tab == 'manual_tab':
                 return manual_points
+            if selected_tab == 'excel_tab':
+                return excel_points
             return []
 
         @callback(
@@ -340,6 +363,43 @@ class ApplicationServer:
                 ).add_to(marker_cluster)
             # TODO Придумать как возвращать карту не через этот метод
             return map_frame._repr_html_()
+
+        @callback(
+            [
+                Output('input_tabs', 'className')
+            ], [
+                Input('metrics_select', 'value'),
+                Input('projection_from_select', 'value'),
+                State('input_tabs', 'className')
+            ]
+        )
+        def show_input_form(selected_metric, selected_projection, tabs_classes):
+            classes = tabs_classes.split()
+            if selected_metric is None or selected_projection is None:
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
+
+        @callback(
+            [
+                Output('projection-to-form', 'className')
+            ], [
+                Input('points', 'data'),
+                State('projection-to-form', 'className')
+            ]
+        )
+        def show_projection_to_form(points, projection_classes):
+            classes = projection_classes.split()
+            if points is None or len(points) == 0:
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
 
     def save_excel_file(self, client_address, file: dict):
         directory_path = self.refresh_or_create_directory(client_address, 'excel_input')

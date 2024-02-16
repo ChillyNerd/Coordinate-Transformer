@@ -12,8 +12,10 @@ layout = html.Div(
         dcc.Store(id='excel_file'),
         dcc.Store(id='points'),
         dcc.Store(id='manual_points'),
+        dcc.Store(id='excel_points'),
         dcc.Store(id='transform_error'),
         dcc.Store(id='excel_upload_error'),
+        dcc.Store(id='excel_read_error'),
         split_pane,
     ],
     className="column-gap"

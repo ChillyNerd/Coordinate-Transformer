@@ -1,5 +1,6 @@
 from dash import html, dcc
 from src.app.components.split.split import split_pane
+from src.app.components.error.error_form import form as error
 
 layout = html.Div(
     children=[
@@ -17,6 +18,7 @@ layout = html.Div(
         dcc.Store(id='excel_upload_error'),
         dcc.Store(id='excel_read_error'),
         split_pane,
+        error
     ],
     className="column-gap"
 )

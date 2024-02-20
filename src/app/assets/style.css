@@ -101,3 +101,9 @@
 .border-top {
     border-top: 1px solid lightgray;
 }
+
+.error-form {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}

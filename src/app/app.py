@@ -6,9 +6,9 @@ import traceback
 
 import dash_bootstrap_components as dbc
 import folium
-from dash import Dash, html, Input, Output, callback, State
+from dash import Dash, Input, Output, callback, State
 from dash.exceptions import PreventUpdate
-from flask import Flask, request
+from flask import request
 from folium.plugins import MarkerCluster
 from src.app.components import layout
 from src.config import Config
@@ -35,6 +35,7 @@ class ApplicationServer:
 
         @callback(
             Output('error', 'children'),
+            Output('error', 'is_open'),
             Input('transform_error', 'data'),
             Input('excel_upload_error', 'data'),
             Input('excel_read_error', 'data')
@@ -48,8 +49,8 @@ class ApplicationServer:
             if excel_read_error is not None:
                 errors.append(excel_read_error)
             if len(errors) == 0:
-                return None
-            return list(map(lambda error: html.Div(error), errors))
+                return None, False
+            return '\n'.join(errors), True
 
         @callback(
             [
@@ -73,7 +74,7 @@ class ApplicationServer:
                 from_string = f'{latitude, longitude} {from_.comment} ({projection_from})'
                 to_string = f'{result_latitude, result_longitude} {to_.comment} ({projection_to})'
                 self.log.info(f"{request.remote_addr} transformed from {from_string} to {to_string}")
-                return str(result_latitude), str(result_longitude), ''
+                return str(result_latitude), str(result_longitude), None
             except BaseTransformException as e:
                 self.log.error(e.message)
                 return None, None, e.message
@@ -295,7 +296,7 @@ class ApplicationServer:
             Input('projection_from_select', 'value'),
         )
         def read_excel(excel_file, projection_from):
-            if excel_file is None:
+            if excel_file is None or projection_from is None:
                 return [], None
             try:
                 transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
@@ -352,7 +353,7 @@ class ApplicationServer:
         def set_map(points):
             if points is None:
                 points = []
-            map_frame = folium.Map(location=[0, 0], zoom_start=2)
+            map_frame = folium.Map(location=[62, 75], zoom_start=4)
             marker_cluster = MarkerCluster().add_to(map_frame)
             for point in points:
                 folium.Marker(

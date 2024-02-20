@@ -17,6 +17,11 @@ tabs = dbc.Tabs(
             label='Excel',
             label_class_name='display-4',
             tab_id='excel_tab'
+        ),
+        dbc.Tab(
+            label='Shape',
+            label_class_name='display-4',
+            tab_id='shape_tab'
         )
     ],
     active_tab='manual_tab',

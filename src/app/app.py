@@ -6,7 +6,7 @@ import traceback
 
 import dash_bootstrap_components as dbc
 import folium
-from dash import Dash, Input, Output, callback, State
+from dash import Dash, Input, Output, callback, State, dcc
 from dash.exceptions import PreventUpdate
 from flask import request
 from folium.plugins import MarkerCluster
@@ -400,6 +400,21 @@ class ApplicationServer:
                 if self.hidden in classes:
                     classes = list(filter(lambda class_name: class_name != self.hidden, classes))
             return [' '.join(classes)]
+
+        @callback(
+            Output('download_data', 'data'),
+            Input('download_excel_file', 'n_clicks'),
+            State('projection_to_select', 'value'),
+            State('upload_excel_file', 'filename')
+        )
+        def download_excel_file(clicks, projection_to, file_name):
+            if clicks:
+                name_without_ext = os.path.splitext(file_name)[0]
+                if projection_to == 'epsg:7683':
+                    return dcc.send_file("D:\\Users\\abramovarto\\PycharmProjects\\coordinate_transformer\\Test_table.xlsx", f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx')
+                if projection_to == 'epsg:20910':
+                    return dcc.send_file("D:\\Users\\abramovarto\\PycharmProjects\\coordinate_transformer\\Test_table 1.xlsx", f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx')
+            raise PreventUpdate
 
     def save_excel_file(self, client_address, file: dict):
         directory_path = self.refresh_or_create_directory(client_address, 'excel_input')

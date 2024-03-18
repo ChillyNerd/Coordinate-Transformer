@@ -12,7 +12,8 @@ from flask import request
 from folium.plugins import MarkerCluster
 from src.app.components import layout
 from src.config import Config
-from src.coordinate_transformer import (projections_dict, CoordinateTransformer, BaseTransformException, Metrics)
+from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException, Metrics
+from src.excel_transformator import ExcelTransformator, BaseExcelTransformException
 
 
 class ApplicationServer:
@@ -20,7 +21,7 @@ class ApplicationServer:
         self.config = config
         self.log = logging.getLogger(config.application_server)
         self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
-                        external_stylesheets=[dbc.themes.BOOTSTRAP])
+                        external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
         self.hidden = 'component-hidden'
         self.app.layout = layout
         self.init_callbacks()
@@ -272,16 +273,16 @@ class ApplicationServer:
         @callback([
             Output('output_manual_form', 'className')
         ], [
-            Input('excel_file', 'data'),
+            Input('excel_points', 'data'),
             Input('tabs_select', 'active_tab'),
             Input('projection_from_select', 'value'),
             Input('projection_to_select', 'value'),
             State('output_manual_form', 'className')
         ]
         )
-        def show_excel_file(excel_file, active_tab, projection_from, projection_to, output_classes):
+        def show_excel_file(excel_points, active_tab, projection_from, projection_to, output_classes):
             classes = output_classes.split()
-            if excel_file is None or projection_from is None or projection_to is None or active_tab != 'excel_tab':
+            if excel_points is None or projection_from is None or projection_to is None or active_tab != 'excel_tab':
                 if self.hidden not in classes:
                     classes.append(self.hidden)
             else:
@@ -290,23 +291,95 @@ class ApplicationServer:
             return [' '.join(classes)]
 
         @callback(
-            Output('excel_points', 'data'),
+            Output('excel_columns', 'data'),
             Output('excel_read_error', 'data'),
             Input('excel_file', 'data'),
-            Input('projection_from_select', 'value'),
         )
-        def read_excel(excel_file, projection_from):
-            if excel_file is None or projection_from is None:
-                return [], None
+        def read_excel(excel_file):
+            if excel_file is None:
+                return None, None
             try:
-                transformer = CoordinateTransformer(projections_dict[projection_from], projections_dict["epsg:4326"])
-                return transformer.transform_excel(excel_file), None
-            except BaseTransformException as ex:
+                return ExcelTransformator.get_excel_columns(excel_file), None
+            except BaseExcelTransformException as ex:
                 self.log.exception(ex)
-                return [], ex.message
+                return None, ex.message
             except Exception as ex:
                 self.log.exception(ex)
-                return [], traceback.format_exc()
+                return None, traceback.format_exc()
+
+        @callback(
+            Output('longitude_column_select', 'options'),
+            Output('latitude_column_select', 'options'),
+            Input('excel_columns', 'data'),
+        )
+        def set_column_options(columns):
+            if columns is None:
+                return None, None
+            options = [{'label': column, 'value': index} for index, column in enumerate(columns)]
+            return options, options
+
+        @callback(
+            Output('latitude_column_select', 'value'),
+            Input('latitude_column_select', 'options'),
+        )
+        def null_latitude_column_value(latitude_select):
+            return None
+
+        @callback(
+            Output('longitude_column_select', 'value'),
+            Input('longitude_column_select', 'options'),
+        )
+        def null_longitude_column_value(longitude_select):
+            return None
+
+        @callback(
+            Output('excel_points', 'data'),
+            Output('excel_show_error', 'data'),
+            Input('confirm_columns', 'n_clicks'),
+            Input('projection_from_select', 'value'),
+            Input('latitude_column_select', 'value'),
+            Input('longitude_column_select', 'value'),
+            State('excel_file', 'data')
+        )
+        def read_excel(confirm_clicks, projection_from, latitude_column, longitude_column, excel_file):
+            if excel_file is None or projection_from is None or latitude_column is None or longitude_column is None:
+                return None, None
+            try:
+                transformer = ExcelTransformator(projections_dict[projection_from], projections_dict["epsg:4326"], int(latitude_column), int(longitude_column))
+                points = []
+                df = transformer.transform(excel_file)
+                for index in range(len(df)):
+                    row = df.iloc[index]
+                    points.append({'latitude': row['result_latitude'], 'longitude': row['result_longitude'], 'id': index})
+                return points, None
+            except BaseExcelTransformException as ex:
+                self.log.exception(ex)
+                return None, ex.message
+            except Exception as ex:
+                self.log.exception(ex)
+                return None, traceback.format_exc()
+
+        @callback(
+            Output('choose_column_dialog', 'is_open'),
+            Input('toggle_choose_column_dialog', 'data'),
+            Input('inspect_excel_file', 'n_clicks'),
+            Input('confirm_columns', 'n_clicks'),
+            State('choose_column_dialog', 'is_open')
+        )
+        def toggle_choose_column_dialog(toggle, inspect_clicks, delete_clicks, is_open):
+            if toggle is None or not toggle:
+                raise PreventUpdate
+            is_open = not is_open
+            return is_open
+
+        @callback(
+            Output('toggle_choose_column_dialog', 'data'),
+            Input('excel_columns', 'data')
+        )
+        def choose_columns(columns):
+            if columns is None:
+                return False
+            return True
 
         @callback(
             [
@@ -330,7 +403,6 @@ class ApplicationServer:
                 return [points]
             except Exception as e:
                 self.log.exception(e)
-                print(traceback.format_exc())
                 return [points]
 
         @callback(
@@ -404,16 +476,20 @@ class ApplicationServer:
         @callback(
             Output('download_data', 'data'),
             Input('download_excel_file', 'n_clicks'),
+            State('projection_from_select', 'value'),
             State('projection_to_select', 'value'),
-            State('upload_excel_file', 'filename')
+            State('latitude_column_select', 'value'),
+            State('longitude_column_select', 'value'),
+            State('upload_excel_file', 'filename'),
+            State('excel_file', 'data')
         )
-        def download_excel_file(clicks, projection_to, file_name):
+        def download_excel_file(clicks, projection_from, projection_to, latitude_column, longitude_column, file_name, excel_file):
             if clicks:
                 name_without_ext = os.path.splitext(file_name)[0]
-                if projection_to == 'epsg:7683':
-                    return dcc.send_file("D:\\Users\\abramovarto\\PycharmProjects\\coordinate_transformer\\Test_table.xlsx", f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx')
-                if projection_to == 'epsg:20910':
-                    return dcc.send_file("D:\\Users\\abramovarto\\PycharmProjects\\coordinate_transformer\\Test_table 1.xlsx", f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx')
+                result_filename = f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx'
+                transformator = ExcelTransformator(projections_dict[projection_from], projections_dict[projection_to], int(latitude_column), int(longitude_column))
+                df = transformator.transform(excel_file)
+                return dcc.send_data_frame(df.to_excel, result_filename, sheet_name='Sheet1')
             raise PreventUpdate
 
     def save_excel_file(self, client_address, file: dict):
@@ -443,14 +519,22 @@ class ApplicationServer:
     def delete_clients_repo(self, client_address):
         client_path = os.path.join(self.config.files_path, client_address)
         if os.path.exists(client_path):
-            shutil.rmtree(client_path)
+            self.recursive_files_delete(client_path)
 
     def delete_files(self, client_address, file_type):
         client_path = os.path.join(self.config.files_path, client_address)
-        if os.path.exists(client_path):
-            files_path = os.path.join(client_path, file_type)
-            if os.path.exists(files_path):
-                content = os.listdir(files_path)
-                for file in content:
-                    os.remove(os.path.join(files_path, file))
-                os.rmdir(files_path)
+        if not os.path.exists(client_path):
+            return
+        files_path = os.path.join(client_path, file_type)
+        if not os.path.exists(files_path):
+            return
+        self.recursive_files_delete(files_path)
+
+    def recursive_files_delete(self, filepath):
+        if os.path.isdir(filepath):
+            content = os.listdir(filepath)
+            for file in content:
+                self.recursive_files_delete(os.path.join(filepath, file))
+            os.rmdir(filepath)
+        else:
+            os.remove(filepath)

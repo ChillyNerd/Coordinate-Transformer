@@ -48,7 +48,7 @@
     width: 140px;
 }
 
-.delete-excel-file {
+.excel-button {
    width: 38px;
    height: 38px;
    font-weight: bold;
@@ -58,16 +58,12 @@
     width: 60px;
 }
 
-.metric-select {
-    width: 60%;
+.common-label {
+    width: 40%;
 }
 
-.metric-select {
-    width: 60%;
-}
-
-.metric-select {
-    width: 60%;
+.common-input {
+    width: 50%;
 }
 
 .input-numeric-form{
@@ -106,4 +102,11 @@
     position: absolute;
     bottom: 0;
     right: 0;
+}
+
+.common-icon {
+    height: 2em;
+    width: auto;
+    filter: invert(1) brightness(2);
+    padding: 5px;
 }

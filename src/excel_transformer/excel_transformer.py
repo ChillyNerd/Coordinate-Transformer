@@ -1,11 +1,11 @@
 import os
 import pandas as pd
-from src.excel_transformator.transform_exception import FileIsNotExcel, FileIsEmpty, FileHasNoColumns
+from src.excel_transformer.transform_exception import FileIsNotExcel, FileIsEmpty, FileHasNoColumns
 from src.coordinate_transformer.coordinate_transformer import CoordinateTransformer
 from src.coordinate_transformer.impl import Projection
 
 
-class ExcelTransformator:
+class ExcelTransformer:
     def __init__(self, projection_from: Projection, projection_to: Projection, latitude_column: int, longitude_column: int):
         self.coordinate_transformer = CoordinateTransformer(projection_from, projection_to)
         self.latitude_column = latitude_column

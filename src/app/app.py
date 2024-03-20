@@ -1,7 +1,6 @@
 import base64
 import logging
 import os
-import shutil
 import traceback
 
 import dash_bootstrap_components as dbc
@@ -13,7 +12,7 @@ from folium.plugins import MarkerCluster
 from src.app.components import layout
 from src.config import Config
 from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException, Metrics
-from src.excel_transformator import ExcelTransformator, BaseExcelTransformException
+from src.excel_transformer import ExcelTransformer, BaseExcelTransformException
 
 
 class ApplicationServer:
@@ -39,9 +38,10 @@ class ApplicationServer:
             Output('error', 'is_open'),
             Input('transform_error', 'data'),
             Input('excel_upload_error', 'data'),
+            Input('excel_show_error', 'data'),
             Input('excel_read_error', 'data')
         )
-        def set_error(transform_error, excel_upload_error, excel_read_error):
+        def set_error(transform_error, excel_upload_error, excel_show_error, excel_read_error):
             errors = []
             if transform_error is not None:
                 errors.append(transform_error)
@@ -49,6 +49,8 @@ class ApplicationServer:
                 errors.append(excel_upload_error)
             if excel_read_error is not None:
                 errors.append(excel_read_error)
+            if excel_show_error is not None:
+                errors.append(excel_show_error)
             if len(errors) == 0:
                 return None, False
             return '\n'.join(errors), True
@@ -299,7 +301,7 @@ class ApplicationServer:
             if excel_file is None:
                 return None, None
             try:
-                return ExcelTransformator.get_excel_columns(excel_file), None
+                return ExcelTransformer.get_excel_columns(excel_file), None
             except BaseExcelTransformException as ex:
                 self.log.exception(ex)
                 return None, ex.message
@@ -345,7 +347,7 @@ class ApplicationServer:
             if excel_file is None or projection_from is None or latitude_column is None or longitude_column is None:
                 return None, None
             try:
-                transformer = ExcelTransformator(projections_dict[projection_from], projections_dict["epsg:4326"], int(latitude_column), int(longitude_column))
+                transformer = ExcelTransformer(projections_dict[projection_from], projections_dict["epsg:4326"], int(latitude_column), int(longitude_column))
                 points = []
                 df = transformer.transform(excel_file)
                 for index in range(len(df)):
@@ -487,9 +489,9 @@ class ApplicationServer:
             if clicks:
                 name_without_ext = os.path.splitext(file_name)[0]
                 result_filename = f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx'
-                transformator = ExcelTransformator(projections_dict[projection_from], projections_dict[projection_to], int(latitude_column), int(longitude_column))
+                transformator = ExcelTransformer(projections_dict[projection_from], projections_dict[projection_to], int(latitude_column), int(longitude_column))
                 df = transformator.transform(excel_file)
-                return dcc.send_data_frame(df.to_excel, result_filename, sheet_name='Sheet1')
+                return dcc.send_data_frame(df.to_excel, result_filename, sheet_name='Sheet1', index=None)
             raise PreventUpdate
 
     def save_excel_file(self, client_address, file: dict):
@@ -520,17 +522,18 @@ class ApplicationServer:
         client_path = os.path.join(self.config.files_path, client_address)
         if os.path.exists(client_path):
             self.recursive_files_delete(client_path)
+            self.log.info(f'Removed {client_address} directory')
 
     def delete_files(self, client_address, file_type):
         client_path = os.path.join(self.config.files_path, client_address)
         if not os.path.exists(client_path):
             return
-        files_path = os.path.join(client_path, file_type)
-        if not os.path.exists(files_path):
-            return
-        self.recursive_files_delete(files_path)
+        self.recursive_files_delete(os.path.join(client_path, file_type))
+        self.log.info(f'Removed {client_address} {file_type} directory')
 
     def recursive_files_delete(self, filepath):
+        if not os.path.exists(filepath):
+            return
         if os.path.isdir(filepath):
             content = os.listdir(filepath)
             for file in content:

@@ -1,5 +1,5 @@
 from src.coordinate_transformer.impl import Projection, Graph
-from src.coordinate_transformer.enums import *
+from src.coordinate_transformer.enums import Metrics, ProjectionType
 
 
 pulkovo_to_pz = (

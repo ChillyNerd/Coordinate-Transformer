@@ -2,7 +2,7 @@ import base64
 import logging
 import os
 import traceback
-
+import geopandas
 import dash_bootstrap_components as dbc
 import folium
 from dash import Dash, Input, Output, callback, State, dcc
@@ -13,6 +13,7 @@ from src.app.components import layout
 from src.config import Config
 from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException, Metrics
 from src.excel_transformer import ExcelTransformer, BaseExcelTransformException
+from src.shape_reader import ShapeReader, BaseShapeReadException
 
 
 class ApplicationServer:
@@ -39,9 +40,10 @@ class ApplicationServer:
             Input('transform_error', 'data'),
             Input('excel_upload_error', 'data'),
             Input('excel_show_error', 'data'),
-            Input('excel_read_error', 'data')
+            Input('excel_read_error', 'data'),
+            Input('shape_read_error', 'data')
         )
-        def set_error(transform_error, excel_upload_error, excel_show_error, excel_read_error):
+        def set_error(transform_error, excel_upload_error, excel_show_error, excel_read_error, shape_read_error):
             errors = []
             if transform_error is not None:
                 errors.append(transform_error)
@@ -51,6 +53,8 @@ class ApplicationServer:
                 errors.append(excel_read_error)
             if excel_show_error is not None:
                 errors.append(excel_show_error)
+            if shape_read_error is not None:
+                errors.append(shape_read_error)
             if len(errors) == 0:
                 return None, False
             return '\n'.join(errors), True
@@ -251,7 +255,7 @@ class ApplicationServer:
                 return None, 'Выберите файл', None
             try:
                 file = {'filename': file_name, 'content': file_content}
-                path = self.save_excel_file(request.remote_addr, file)
+                path = self.upload_file(request.remote_addr, 'excel_input', file)
                 self.log.info(f'{request.remote_addr} successfully uploaded excel file {file_name}')
                 return path, file_name, None
             except Exception as ex:
@@ -303,6 +307,56 @@ class ApplicationServer:
             try:
                 return ExcelTransformer.get_excel_columns(excel_file), None
             except BaseExcelTransformException as ex:
+                self.log.exception(ex)
+                return None, ex.message
+            except Exception as ex:
+                self.log.exception(ex)
+                return None, traceback.format_exc()
+
+        @callback([
+            Output('shape_archive', 'data'),
+            Output('shape_file_name', 'children'),
+            Output('shape_upload_error', 'data')
+        ], [
+            Input('upload_shape_file', 'contents'),
+            State('upload_shape_file', 'filename')
+        ])
+        def upload_shape_file(file_content, file_name):
+            if not file_name:
+                return None, 'Выберите файл', None
+            try:
+                file = {'filename': file_name, 'content': file_content}
+                path = self.upload_file(request.remote_addr, 'shape_input', file)
+                self.log.info(f'{request.remote_addr} successfully uploaded shape file {file_name}')
+                return path, file_name, None
+            except Exception as ex:
+                self.log.exception(ex)
+                return None, 'Выберите файл', traceback.format_exc()
+
+        @callback([
+            Output('upload_shape_file', 'contents'),
+            Output('upload_shape_file', 'filename')
+        ], [
+            Input('delete_shape_file', 'n_clicks')
+        ])
+        def clear_shape_file(clicks):
+            if clicks:
+                self.delete_files(request.remote_addr, 'shape_input')
+                return None, None
+            else:
+                raise PreventUpdate
+
+        @callback(
+            Output('shape_files', 'data'),
+            Output('shape_read_error', 'data'),
+            Input('shape_archive', 'data')
+        )
+        def read_shape(shape_archive):
+            if shape_archive is None:
+                return None, None
+            try:
+                return ShapeReader.read(shape_archive), None
+            except BaseShapeReadException as ex:
                 self.log.exception(ex)
                 return None, ex.message
             except Exception as ex:
@@ -422,21 +476,27 @@ class ApplicationServer:
 
         @callback(
             Output('map', 'srcDoc'),
-            Input('points', 'data')
+            Input('points', 'data'),
+            Input('shape_files', 'data'),
+            State('tabs_select', 'active_tab')
         )
-        def set_map(points):
+        def set_map(points, shape_files, active_tab):
             if points is None:
                 points = []
             map_frame = folium.Map(location=[62, 75], zoom_start=4)
-            marker_cluster = MarkerCluster().add_to(map_frame)
-            for point in points:
-                folium.Marker(
-                    location=[point['latitude'], point['longitude']],
-                    popup=f'{point["id"]}',
-                    icon=folium.Icon(color="blue")
-                ).add_to(marker_cluster)
-            # TODO Придумать как возвращать карту не через этот метод
-            return map_frame._repr_html_()
+            if active_tab == 'shape_tab' and shape_files is not None:
+                for file in shape_files:
+                    geo_file = geopandas.read_file(file)
+                    folium.GeoJson(geo_file, popup=os.path.basename(file)).add_to(map_frame)
+            else:
+                marker_cluster = MarkerCluster().add_to(map_frame)
+                for point in points:
+                    folium.Marker(
+                        location=[point['latitude'], point['longitude']],
+                        popup=f'{point["id"]}',
+                        icon=folium.Icon(color="blue")
+                    ).add_to(marker_cluster)
+            return map_frame.get_root().render()
 
         @callback(
             [
@@ -494,8 +554,8 @@ class ApplicationServer:
                 return dcc.send_data_frame(df.to_excel, result_filename, sheet_name='Sheet1', index=None)
             raise PreventUpdate
 
-    def save_excel_file(self, client_address, file: dict):
-        directory_path = self.refresh_or_create_directory(client_address, 'excel_input')
+    def upload_file(self, client_address, file_type: str, file: dict):
+        directory_path = self.refresh_or_create_directory(client_address, file_type)
         return self.save_file(directory_path, file['filename'], file['content'])
 
     def refresh_or_create_directory(self, client_address, file_type: str):

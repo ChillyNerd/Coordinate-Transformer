@@ -8,7 +8,7 @@ latitude_angle_minutes_input = dcc.Input(id='latitude_angle_minutes_input', type
                                          min=0, max=60, step=1, value=0)
 latitude_angle_minutes_label = html.Div("′")
 latitude_angle_seconds_input = dcc.Input(id='latitude_angle_seconds_input', type='number', className="angle-input-form",
-                                         min=0, max=60, step=1, value=0)
+                                         min=0, max=60, value=0)
 latitude_angle_seconds_label = html.Div("″")
 latitude_form_children = [latitude_angle_input, latitude_angle_label, latitude_angle_minutes_input,
                           latitude_angle_minutes_label, latitude_angle_seconds_input, latitude_angle_seconds_label]
@@ -23,7 +23,7 @@ longitude_angle_minutes_input = dcc.Input(id='longitude_angle_minutes_input', ty
                                           className="angle-input-form", min=0, max=60, step=1, value=0)
 longitude_angle_minutes_label = html.Div("′")
 longitude_angle_seconds_input = dcc.Input(id='longitude_angle_seconds_input', type='number',
-                                          className="angle-input-form", min=0, max=60, step=1, value=0)
+                                          className="angle-input-form", min=0, max=60, value=0)
 longitude_angle_seconds_label = html.Div("″")
 longitude_form_children = [longitude_angle_input, longitude_angle_label, longitude_angle_minutes_input,
                            longitude_angle_minutes_label, longitude_angle_seconds_input, longitude_angle_seconds_label]

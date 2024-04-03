@@ -1,6 +1,6 @@
 import dash_bootstrap_components as dbc
 from dash import html
-
+from src.app.components.input.input_shape_form import form as input_shape_form
 from src.app.components.input.input_excel_form import form as input_excel_form
 from src.app.components.input.input_manual_form import form as input_manual_form
 
@@ -19,6 +19,7 @@ tabs = dbc.Tabs(
             tab_id='excel_tab'
         ),
         dbc.Tab(
+            input_shape_form,
             label='Shape',
             label_class_name='display-4',
             tab_id='shape_tab'

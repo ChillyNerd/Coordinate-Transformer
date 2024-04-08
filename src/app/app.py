@@ -559,16 +559,16 @@ class ApplicationServer:
         return self.save_file(directory_path, file['filename'], file['content'])
 
     def refresh_or_create_directory(self, client_address, file_type: str):
-        path = os.path.join(self.config.files_path, client_address)
-        if not os.path.exists(path):
-            os.mkdir(path)
-        path = os.path.join(path, file_type)
-        if not os.path.exists(path):
-            os.mkdir(path)
-        content = os.listdir(path)
+        clients_path = os.path.join(self.config.files_path, client_address)
+        if not os.path.exists(clients_path):
+            os.mkdir(clients_path)
+        file_path = os.path.join(clients_path, file_type)
+        if not os.path.exists(file_path):
+            os.mkdir(file_path)
+        content = os.listdir(file_path)
         for file in content:
-            os.remove(os.path.join(path, file))
-        return path
+            self.recursive_files_delete(os.path.join(file_path, file))
+        return file_path
 
     @staticmethod
     def save_file(path, name, content):

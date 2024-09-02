@@ -68,7 +68,7 @@ class ApplicationServer:
                 Input('latitude', 'data'),
                 Input('longitude', 'data'),
                 Input('projection_from_select', 'value'),
-                Input('projection_to_select', 'value')
+                Input('zone_to_select', 'value')
             ]
         )
         def transform_coordinates(latitude, longitude, projection_from, projection_to):
@@ -152,7 +152,16 @@ class ApplicationServer:
             if metric == Metrics.ANGLE.name:
                 return None
             return longitude
-
+        
+        @callback(
+            Output('zone_to_select', 'options'),
+            Output('zone_to_select', 'value'),
+            Input('projection_to_select', 'value')
+        )
+        def filter_zones(group_name):
+            projections = list(filter(lambda projection: projection.projection_group == group_name, projections_dict.values()))
+            return [{'label': projection.comment, 'value': projection.mnemonic} for projection in projections], None
+        
         @callback(
             Output('numeric_latitude', 'data'),
             Input('latitude_numeric_input', 'value'),
@@ -282,13 +291,31 @@ class ApplicationServer:
             Input('excel_points', 'data'),
             Input('tabs_select', 'active_tab'),
             Input('projection_from_select', 'value'),
-            Input('projection_to_select', 'value'),
+            Input('zone_to_select', 'value'),
             State('output_manual_form', 'className')
         ]
         )
         def show_excel_file(excel_points, active_tab, projection_from, projection_to, output_classes):
             classes = output_classes.split()
             if excel_points is None or projection_from is None or projection_to is None or active_tab != 'excel_tab':
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
+
+        @callback([
+            Output('zone_to_form', 'className')
+        ], [
+            Input('points', 'data'),
+            Input('projection_to_select', 'value'),
+            State('zone_to_form', 'className')
+        ]
+        )
+        def show_zone_select_form(points, projection_group, output_classes):
+            classes = output_classes.split()
+            if projection_group is None or points is None or len(points) == 0:
                 if self.hidden not in classes:
                     classes.append(self.hidden)
             else:
@@ -519,10 +546,10 @@ class ApplicationServer:
 
         @callback(
             [
-                Output('projection-to-form', 'className')
+                Output('projection_to_form', 'className')
             ], [
                 Input('points', 'data'),
-                State('projection-to-form', 'className')
+                State('projection_to_form', 'className')
             ]
         )
         def show_projection_to_form(points, projection_classes):
@@ -539,7 +566,7 @@ class ApplicationServer:
             Output('download_data', 'data'),
             Input('download_excel_file', 'n_clicks'),
             State('projection_from_select', 'value'),
-            State('projection_to_select', 'value'),
+            State('zone_to_select', 'value'),
             State('latitude_column_select', 'value'),
             State('longitude_column_select', 'value'),
             State('upload_excel_file', 'filename'),

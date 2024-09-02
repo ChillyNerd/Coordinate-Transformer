@@ -5,7 +5,7 @@ from pyproj.enums import TransformDirection
 from src.coordinate_transformer.transform_exception import NotImplementedYet
 from src.coordinate_transformer.impl import Projection
 from src.coordinate_transformer.enums import ProjectionType
-from src.coordinate_transformer.defaults import dependencies, intermediate_projections_dict, pulkovo_to_pz, gsk_to_pz
+from src.coordinate_transformer.defaults import dependencies, intermediate_projections_dict, pulkovo_to_pz, gsk_to_pz, LUK_CRS
 from src.config import Config
 
 
@@ -37,6 +37,22 @@ class StepTransformer:
             transformer = Transformer.from_pipeline(gsk_to_pz)
             direction = TransformDirection.INVERSE
             pipeline = f'Using inversed GSK to PZ pipeline'
+        elif self.from_.type == ProjectionType.PULKOVO_NZONE and self.to_.type == ProjectionType.PULKOVO:
+            transformer = Transformer.from_pipeline(LUK_CRS[self.from_.mnemonic][2])
+            print(transformer)
+            pipeline = f'Using PULKOVO_NZONE to PULKOVO pipeline'
+        elif self.from_.type == ProjectionType.PULKOVO and self.to_.type == ProjectionType.PULKOVO_NZONE:
+            transformer = Transformer.from_pipeline(LUK_CRS[self.to_.mnemonic][3])
+            print(transformer)
+            pipeline = f'Using PULKOVO to PULKOVO_NZONE pipeline'
+        elif self.from_.type == ProjectionType.GSK_NZONE and self.to_.type == ProjectionType.GSK:
+            transformer = Transformer.from_pipeline(LUK_CRS[self.from_.mnemonic][2])
+            print(transformer)
+            pipeline = f'Using GSK_NZONE to GSK pipeline'
+        elif self.from_.type == ProjectionType.GSK and self.to_.type == ProjectionType.GSK_NZONE:
+            transformer = Transformer.from_pipeline(LUK_CRS[self.to_.mnemonic][3])
+            print(transformer)
+            pipeline = f'Using GSK to GSK_NZONE pipeline'
         else:
             transformer = Transformer.from_crs(self.from_.mnemonic, self.to_.mnemonic)
             pipeline = f'Using common transformer'

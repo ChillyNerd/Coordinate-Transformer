@@ -15,7 +15,6 @@ class Metric:
 class Metrics(Enum):
     METER = Metric("Метры", MetricType.METER)
     ANGLE = Metric("Градусы минуты секунды", MetricType.ANGLE)
-    ANGLESEP = Metric("Градусы минуты секунды через пробел", MetricType.ANGLE)
     FLOAT_ANGLE = Metric("Градусы (десятичная дробь)", MetricType.ANGLE)
 
 
@@ -24,9 +23,3 @@ class OutputMetrics(Enum):
     ANGLE_DM = Metric("Градусы минуты", MetricType.ANGLE)
     ANGLE_DMS = Metric("Градусы минуты секунды", MetricType.ANGLE)
     FLOAT_ANGLE = Metric("Градусы (десятичная дробь)", MetricType.ANGLE)
-
-
-class AngleOutputMetrics(Enum):
-    FLOAT_ANGLE = "Градусы (десятичная дробь)"
-    ANGLE = "Градусы минуты"
-    ANGLESEP = "Градусы минуты секунды"

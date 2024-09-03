@@ -1,5 +1,5 @@
 from src.coordinate_transformer.impl import Projection, Graph
-from src.coordinate_transformer.enums import Metrics, ProjectionType, ProjectionGroup
+from src.coordinate_transformer.enums import MetricType, ProjectionType, ProjectionGroup
 from typing import Dict
 
 LUK_CRS = {
@@ -92,57 +92,54 @@ gsk_to_pz = (
     "step proj=unitconvert xy_in=rad xy_out=deg step proj=axisswap order=2,1"
 )
 
-angle_metrics = [Metrics.ANGLE, Metrics.FLOAT_ANGLE, Metrics.ANGLESEP]
-meter_metrics = [Metrics.METER]
-
 intermediate_projections = [
-    Projection("epsg:4326", "WGS84", ProjectionType.WGS, ProjectionGroup.WGS84_SK, angle_metrics),
-    Projection("epsg:9475", "ПЗ 90.11", ProjectionType.PZ, ProjectionGroup.PZ_SK, angle_metrics, disabled=True),
-    Projection("epsg:4284", "Пулково 1942/Широта/Долгота", ProjectionType.PULKOVO, ProjectionGroup.SK42_SK, angle_metrics),
-    Projection("epsg:7683", "ГСК-2011/GSK-2011", ProjectionType.GSK, ProjectionGroup.GSK_SK, angle_metrics),
+    Projection("epsg:4326", "WGS84", ProjectionType.WGS, ProjectionGroup.WGS84_SK, metric_type=MetricType.ANGLE),
+    Projection("epsg:9475", "ПЗ 90.11", ProjectionType.PZ, ProjectionGroup.PZ_SK, metric_type=MetricType.ANGLE, disabled=True),
+    Projection("epsg:4284", "Пулково 1942/Широта/Долгота", ProjectionType.PULKOVO, ProjectionGroup.SK42_SK, metric_type=MetricType.ANGLE),
+    Projection("epsg:7683", "ГСК-2011/GSK-2011", ProjectionType.GSK, ProjectionGroup.GSK_SK, metric_type=MetricType.ANGLE),
 ]
 intermediate_projections_dict = {
     projection.projection_type: projection.mnemonic for projection in intermediate_projections
 }
 zone_projections = [
-    Projection("epsg:20904", "Зона 4 ГСК-2011/GSK-2011_GK_Zone_4", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20908", "Зона 8 ГСК-2011/GSK-2011_GK_Zone_8", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20909", "Зона 9 ГСК-2011/GSK-2011_GK_Zone_9", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20910", "Зона 10 ГСК-2011/GSK-2011_GK_Zone_10", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20911", "Зона 11 ГСК-2011/GSK-2011_GK_Zone_11", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20912", "Зона 12 ГСК-2011/GSK-2011_GK_Zone_12", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20913", "Зона 13 ГСК-2011/GSK-2011_GK_Zone_13", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:20914", "Зона 14 ГСК-2011/GSK-2011_GK_Zone_14", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920904", "Зона 4N ГСК-2011/GSK-2011_GK_Zone_4N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920908", "Зона 8N ГСК-2011/GSK-2011_GK_Zone_8N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920909", "Зона 9N ГСК-2011/GSK-2011_GK_Zone_9N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920910", "Зона 10N ГСК-2011/GSK-2011_GK_Zone_10N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920911", "Зона 11N ГСК-2011/GSK-2011_GK_Zone_11N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920912", "Зона 12N ГСК-2011/GSK-2011_GK_Zone_12N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920913", "Зона 13N ГСК-2011/GSK-2011_GK_Zone_13N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:920914", "Зона 14N ГСК-2011/GSK-2011_GK_Zone_14N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, meter_metrics),
-    Projection("epsg:28404", "Зона 4 Pulkovo_1942_GK_Zone_4", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28408", "Зона 8 Pulkovo_1942_GK_Zone_8", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28409", "Зона 9 Pulkovo_1942_GK_Zone_9", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28410", "Зона 10 Pulkovo_1942_GK_Zone_10", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28411", "Зона 11 Pulkovo_1942_GK_Zone_11", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28412", "Зона 12 Pulkovo_1942_GK_Zone_12", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28413", "Зона 13 Pulkovo_1942_GK_Zone_13", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28414", "Зона 14 Pulkovo_1942_GK_Zone_14", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:28415", "Зона 15 Pulkovo_1942_GK_Zone_15", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928404", "Зона 4N Pulkovo_1942_GK_Zone_4N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928408", "Зона 8N Pulkovo_1942_GK_Zone_8N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928409", "Зона 9N Pulkovo_1942_GK_Zone_9N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928410", "Зона 10N Pulkovo_1942_GK_Zone_10N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928411", "Зона 11N Pulkovo_1942_GK_Zone_11N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928412", "Зона 12N Pulkovo_1942_GK_Zone_12N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928413", "Зона 13N Pulkovo_1942_GK_Zone_13N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928414", "Зона 14N Pulkovo_1942_GK_Zone_14N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:928415", "Зона 15N Pulkovo_1942_GK_Zone_15N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, meter_metrics),
-    Projection("epsg:999001", "W-2 (УНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, meter_metrics),
-    Projection("epsg:999002", "W-3 (КНГ+ПовхНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, meter_metrics),
-    Projection("epsg:999003", "W-4 (ПНГ+ЛНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, meter_metrics),
-    Projection("epsg:999004", "W-4-L (ЯНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, meter_metrics),
+    Projection("epsg:20904", "Зона 4 ГСК-2011/GSK-2011_GK_Zone_4", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20908", "Зона 8 ГСК-2011/GSK-2011_GK_Zone_8", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20909", "Зона 9 ГСК-2011/GSK-2011_GK_Zone_9", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20910", "Зона 10 ГСК-2011/GSK-2011_GK_Zone_10", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20911", "Зона 11 ГСК-2011/GSK-2011_GK_Zone_11", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20912", "Зона 12 ГСК-2011/GSK-2011_GK_Zone_12", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20913", "Зона 13 ГСК-2011/GSK-2011_GK_Zone_13", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:20914", "Зона 14 ГСК-2011/GSK-2011_GK_Zone_14", ProjectionType.GSK_ZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920904", "Зона 4N ГСК-2011/GSK-2011_GK_Zone_4N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920908", "Зона 8N ГСК-2011/GSK-2011_GK_Zone_8N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920909", "Зона 9N ГСК-2011/GSK-2011_GK_Zone_9N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920910", "Зона 10N ГСК-2011/GSK-2011_GK_Zone_10N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920911", "Зона 11N ГСК-2011/GSK-2011_GK_Zone_11N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920912", "Зона 12N ГСК-2011/GSK-2011_GK_Zone_12N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920913", "Зона 13N ГСК-2011/GSK-2011_GK_Zone_13N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:920914", "Зона 14N ГСК-2011/GSK-2011_GK_Zone_14N", ProjectionType.GSK_NZONE, ProjectionGroup.GSK_SK, metric_type=MetricType.METER),
+    Projection("epsg:28404", "Зона 4 Pulkovo_1942_GK_Zone_4", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28408", "Зона 8 Pulkovo_1942_GK_Zone_8", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28409", "Зона 9 Pulkovo_1942_GK_Zone_9", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28410", "Зона 10 Pulkovo_1942_GK_Zone_10", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28411", "Зона 11 Pulkovo_1942_GK_Zone_11", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28412", "Зона 12 Pulkovo_1942_GK_Zone_12", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28413", "Зона 13 Pulkovo_1942_GK_Zone_13", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28414", "Зона 14 Pulkovo_1942_GK_Zone_14", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:28415", "Зона 15 Pulkovo_1942_GK_Zone_15", ProjectionType.PULKOVO_ZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928404", "Зона 4N Pulkovo_1942_GK_Zone_4N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928408", "Зона 8N Pulkovo_1942_GK_Zone_8N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928409", "Зона 9N Pulkovo_1942_GK_Zone_9N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928410", "Зона 10N Pulkovo_1942_GK_Zone_10N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928411", "Зона 11N Pulkovo_1942_GK_Zone_11N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928412", "Зона 12N Pulkovo_1942_GK_Zone_12N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928413", "Зона 13N Pulkovo_1942_GK_Zone_13N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928414", "Зона 14N Pulkovo_1942_GK_Zone_14N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:928415", "Зона 15N Pulkovo_1942_GK_Zone_15N", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK42_SK, metric_type=MetricType.METER),
+    Projection("epsg:999001", "W-2 (УНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, metric_type=MetricType.METER),
+    Projection("epsg:999002", "W-3 (КНГ+ПовхНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, metric_type=MetricType.METER),
+    Projection("epsg:999003", "W-4 (ПНГ+ЛНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, metric_type=MetricType.METER),
+    Projection("epsg:999004", "W-4-L (ЯНГ- 63год)", ProjectionType.PULKOVO_NZONE, ProjectionGroup.SK63_SK, metric_type=MetricType.METER),
 ]
 projections = [
     *intermediate_projections,

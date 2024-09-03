@@ -110,3 +110,7 @@
     filter: invert(1) brightness(2);
     padding: 5px;
 }
+
+.justify-end {
+    justify-content: flex-end;
+}

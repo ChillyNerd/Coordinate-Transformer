@@ -11,7 +11,9 @@ from flask import request
 from folium.plugins import MarkerCluster
 from src.app.components import layout
 from src.config import Config
-from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException, Metrics
+from src.coordinate_transformer.coordinate_formater import format_coordinate
+from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException
+from src.coordinate_transformer.enums import OutputMetrics, Metrics
 from src.excel_transformer import ExcelTransformer, BaseExcelTransformException
 from src.shape_reader import ShapeReader, BaseShapeReadException
 
@@ -34,15 +36,16 @@ class ApplicationServer:
             self.delete_clients_repo(client)
             return '', 200
 
-        @callback(
+        @callback([
             Output('error', 'children'),
-            Output('error', 'is_open'),
+            Output('error', 'is_open')
+        ], [
             Input('transform_error', 'data'),
             Input('excel_upload_error', 'data'),
             Input('excel_show_error', 'data'),
             Input('excel_read_error', 'data'),
             Input('shape_read_error', 'data')
-        )
+        ])
         def set_error(transform_error, excel_upload_error, excel_show_error, excel_read_error, shape_read_error):
             errors = []
             if transform_error is not None:
@@ -67,11 +70,12 @@ class ApplicationServer:
             ], [
                 Input('latitude', 'data'),
                 Input('longitude', 'data'),
-                Input('projection_from_select', 'value'),
-                Input('zone_to_select', 'value')
+                Input('zone_from_select', 'value'),
+                Input('zone_to_select', 'value'),
+                Input('output_metrics_select', 'value')
             ]
         )
-        def transform_coordinates(latitude, longitude, projection_from, projection_to):
+        def transform_coordinates(latitude, longitude, projection_from, projection_to, output_metric):
             if latitude is None or longitude is None or projection_from is None or projection_to is None:
                 return None, None, None
             try:
@@ -81,7 +85,7 @@ class ApplicationServer:
                 from_string = f'{latitude, longitude} {from_.comment} ({projection_from})'
                 to_string = f'{result_latitude, result_longitude} {to_.comment} ({projection_to})'
                 self.log.info(f"{request.remote_addr} transformed from {from_string} to {to_string}")
-                return str(result_latitude), str(result_longitude), None
+                return format_coordinate(coordinate=result_latitude, metric=output_metric), format_coordinate(coordinate=result_longitude, metric=output_metric), None
             except BaseTransformException as e:
                 self.log.error(e.message)
                 return None, None, e.message
@@ -111,32 +115,33 @@ class ApplicationServer:
 
         @callback(
             [
-                Output('projection_from_select', 'options'),
-                Output('projection_from_select', 'value'),
+                Output('zone_from_select', 'options'),
+                Output('zone_from_select', 'value'),
                 Output('input_angle_form', 'className'),
                 Output('input_numeric_form', 'className')
             ], [
                 Input('metrics_select', 'value'),
+                Input('projection_from_select', 'value'),
                 State('input_angle_form', 'className'),
                 State('input_numeric_form', 'className'),
             ]
         )
-        def select_input_form(metric, angle_class_name, numeric_class_name):
-            if metric is None:
+        def select_input_form(metric_name, projection_from, angle_class_name, numeric_class_name):
+            if metric_name is None:
                 raise PreventUpdate
             angle_classes = angle_class_name.split()
             numeric_classes = numeric_class_name.split()
             projections = projections_dict.values()
-            projections_from = list(filter(
-                lambda projection: metric in projection.allowed_metrics and not projection.disabled, projections
+            zones_from = list(filter(
+                lambda projection: metric_name in [metric.name for metric in Metrics if metric.value.metric_type == projection.metric_type] and not projection.disabled and projection.projection_group == projection_from, projections
             ))
-            projections_from_options = [{'label': proj.comment, 'value': proj.mnemonic} for proj in projections_from]
-            if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
+            projections_from_options = [{'label': proj.comment, 'value': proj.mnemonic} for proj in zones_from]
+            if metric_name == Metrics.METER.name or metric_name == Metrics.FLOAT_ANGLE.name:
                 if self.hidden not in angle_classes:
                     angle_classes.append(self.hidden)
                 if self.hidden in numeric_classes:
                     numeric_classes = list(filter(lambda class_name: class_name != self.hidden, numeric_classes))
-            if metric == Metrics.ANGLE.name:
+            if metric_name == Metrics.ANGLE.name:
                 if self.hidden in angle_classes:
                     angle_classes = list(filter(lambda class_name: class_name != self.hidden, angle_classes))
                 if self.hidden not in numeric_classes:
@@ -205,6 +210,18 @@ class ApplicationServer:
             if angle is not None and minutes is not None and seconds is not None:
                 return [angle + minutes / 60.0 + seconds / 3600.0]
             return [None]
+
+        @callback(
+            Output('output_metrics_select', 'options'),
+            Output('output_metrics_select', 'value'),
+            Input('zone_to_select', 'value'),
+        )
+        def set_output_metrics(zone_name):
+            if zone_name is None:
+                raise PreventUpdate
+            zone_to = projections_dict[zone_name]
+            allowed_metrics = [{'label': metric.value.label, 'value': metric.name} for metric in OutputMetrics if metric.value.metric_type == zone_to.metric_type]
+            return allowed_metrics, allowed_metrics[0]['value']
 
         @callback(
             Output('latitude', 'data'),
@@ -290,7 +307,7 @@ class ApplicationServer:
         ], [
             Input('excel_points', 'data'),
             Input('tabs_select', 'active_tab'),
-            Input('projection_from_select', 'value'),
+            Input('zone_from_select', 'value'),
             Input('zone_to_select', 'value'),
             State('output_manual_form', 'className')
         ]
@@ -419,7 +436,7 @@ class ApplicationServer:
             Output('excel_points', 'data'),
             Output('excel_show_error', 'data'),
             Input('confirm_columns', 'n_clicks'),
-            Input('projection_from_select', 'value'),
+            Input('zone_from_select', 'value'),
             Input('latitude_column_select', 'value'),
             Input('longitude_column_select', 'value'),
             State('excel_file', 'data')
@@ -470,7 +487,7 @@ class ApplicationServer:
             ], [
                 Input('latitude', 'data'),
                 Input('longitude', 'data'),
-                Input('projection_from_select', 'value'),
+                Input('zone_from_select', 'value'),
                 Input('tabs_select', 'active_tab'),
             ]
         )
@@ -530,7 +547,7 @@ class ApplicationServer:
                 Output('input_tabs', 'className')
             ], [
                 Input('metrics_select', 'value'),
-                Input('projection_from_select', 'value'),
+                Input('zone_from_select', 'value'),
                 State('input_tabs', 'className')
             ]
         )
@@ -565,7 +582,7 @@ class ApplicationServer:
         @callback(
             Output('download_data', 'data'),
             Input('download_excel_file', 'n_clicks'),
-            State('projection_from_select', 'value'),
+            State('zone_from_select', 'value'),
             State('zone_to_select', 'value'),
             State('latitude_column_select', 'value'),
             State('longitude_column_select', 'value'),

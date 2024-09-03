@@ -1,8 +1,32 @@
 from enum import Enum
 
 
+class MetricType(Enum):
+    METER = "Метровая"
+    ANGLE = "Градусная"
+
+
+class Metric:
+    def __init__(self, label: str, metric_type: MetricType):
+        self.label = label
+        self.metric_type = metric_type
+
+
 class Metrics(Enum):
-    METER = "Метры"
-    ANGLE = "Градусы минуты секунды"
-    ANGLESEP = "Градусы минуты секунды через пробел"
+    METER = Metric("Метры", MetricType.METER)
+    ANGLE = Metric("Градусы минуты секунды", MetricType.ANGLE)
+    ANGLESEP = Metric("Градусы минуты секунды через пробел", MetricType.ANGLE)
+    FLOAT_ANGLE = Metric("Градусы (десятичная дробь)", MetricType.ANGLE)
+
+
+class OutputMetrics(Enum):
+    METER = Metric("Метры", MetricType.METER)
+    ANGLE_DM = Metric("Градусы минуты", MetricType.ANGLE)
+    ANGLE_DMS = Metric("Градусы минуты секунды", MetricType.ANGLE)
+    FLOAT_ANGLE = Metric("Градусы (десятичная дробь)", MetricType.ANGLE)
+
+
+class AngleOutputMetrics(Enum):
     FLOAT_ANGLE = "Градусы (десятичная дробь)"
+    ANGLE = "Градусы минуты"
+    ANGLESEP = "Градусы минуты секунды"

@@ -39,19 +39,15 @@ class StepTransformer:
             pipeline = f'Using inversed GSK to PZ pipeline'
         elif self.from_.type == ProjectionType.PULKOVO_NZONE and self.to_.type == ProjectionType.PULKOVO:
             transformer = Transformer.from_pipeline(LUK_CRS[self.from_.mnemonic][2])
-            print(transformer)
             pipeline = f'Using PULKOVO_NZONE to PULKOVO pipeline'
         elif self.from_.type == ProjectionType.PULKOVO and self.to_.type == ProjectionType.PULKOVO_NZONE:
             transformer = Transformer.from_pipeline(LUK_CRS[self.to_.mnemonic][3])
-            print(transformer)
             pipeline = f'Using PULKOVO to PULKOVO_NZONE pipeline'
         elif self.from_.type == ProjectionType.GSK_NZONE and self.to_.type == ProjectionType.GSK:
             transformer = Transformer.from_pipeline(LUK_CRS[self.from_.mnemonic][2])
-            print(transformer)
             pipeline = f'Using GSK_NZONE to GSK pipeline'
         elif self.from_.type == ProjectionType.GSK and self.to_.type == ProjectionType.GSK_NZONE:
             transformer = Transformer.from_pipeline(LUK_CRS[self.to_.mnemonic][3])
-            print(transformer)
             pipeline = f'Using GSK to GSK_NZONE pipeline'
         else:
             transformer = Transformer.from_crs(self.from_.mnemonic, self.to_.mnemonic)

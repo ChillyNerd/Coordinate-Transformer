@@ -11,6 +11,7 @@ class ProjectionType(Enum):
     PULKOVO63_ZONE = 'Зона Пулково 1963'
     WGS = 'WGS84'
 
+
 class ProjectionGroup(Enum):
     GSK_SK = 'ГСК-2011'
     SK42_SK = 'Пулково 1942г.'

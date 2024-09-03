@@ -17,3 +17,13 @@ class FileIsEmpty(BaseExcelTransformException):
 class FileHasNoColumns(BaseExcelTransformException):
     def __init__(self):
         super().__init__("В файле должно быть минимум 2 колонки!")
+
+
+class NonCompatibleLatitude(BaseExcelTransformException):
+    def __init__(self):
+        super().__init__("Строки в колонке широты не соотвествуют заданной единице измерения")
+
+
+class NonCompatibleLongitude(BaseExcelTransformException):
+    def __init__(self):
+        super().__init__("Строки в колонке долготы не соотвествуют заданной единице измерения")

@@ -11,7 +11,7 @@ from flask import request
 from folium.plugins import MarkerCluster
 from src.app.components import layout
 from src.config import Config
-from src.coordinate_transformer.coordinate_formater import format_coordinate
+from src.coordinate_transformer.coordinate_formater import format_coordinate, angle_to_float
 from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException
 from src.coordinate_transformer.enums import OutputMetrics, Metrics
 from src.excel_transformer import ExcelTransformer, BaseExcelTransformException
@@ -191,7 +191,7 @@ class ApplicationServer:
             if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
                 return [None]
             if angle is not None and minutes is not None and seconds is not None:
-                return [angle + minutes / 60.0 + seconds / 3600.0]
+                return [angle_to_float(angle, minutes, seconds)]
             return [None]
 
         @callback(
@@ -208,7 +208,7 @@ class ApplicationServer:
             if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
                 return [None]
             if angle is not None and minutes is not None and seconds is not None:
-                return [angle + minutes / 60.0 + seconds / 3600.0]
+                return [angle_to_float(angle, minutes, seconds)]
             return [None]
 
         @callback(
@@ -432,20 +432,28 @@ class ApplicationServer:
         def null_longitude_column_value(longitude_select):
             return None
 
-        @callback(
+        @callback([
             Output('excel_points', 'data'),
-            Output('excel_show_error', 'data'),
+            Output('excel_show_error', 'data')
+        ], [
             Input('confirm_columns', 'n_clicks'),
             Input('zone_from_select', 'value'),
             Input('latitude_column_select', 'value'),
             Input('longitude_column_select', 'value'),
-            State('excel_file', 'data')
-        )
-        def read_excel(confirm_clicks, projection_from, latitude_column, longitude_column, excel_file):
+            State('excel_file', 'data'),
+            State('metrics_select', 'value')
+        ])
+        def set_excel_points(confirm_clicks, projection_from, latitude_column, longitude_column, excel_file, metric):
             if excel_file is None or projection_from is None or latitude_column is None or longitude_column is None:
                 return None, None
             try:
-                transformer = ExcelTransformer(projections_dict[projection_from], projections_dict["epsg:4326"], int(latitude_column), int(longitude_column))
+                transformer = ExcelTransformer(
+                    projection_from=projections_dict[projection_from],
+                    projection_to=projections_dict["epsg:4326"],
+                    latitude_column=int(latitude_column),
+                    longitude_column=int(longitude_column),
+                    metric=metric
+                )
                 points = []
                 df = transformer.transform(excel_file)
                 for index in range(len(df)):
@@ -587,13 +595,20 @@ class ApplicationServer:
             State('latitude_column_select', 'value'),
             State('longitude_column_select', 'value'),
             State('upload_excel_file', 'filename'),
-            State('excel_file', 'data')
+            State('excel_file', 'data'),
+            State('metrics_select', 'value'),
         )
-        def download_excel_file(clicks, projection_from, projection_to, latitude_column, longitude_column, file_name, excel_file):
+        def download_excel_file(clicks, projection_from, projection_to, latitude_column, longitude_column, file_name, excel_file, metric):
             if clicks:
                 name_without_ext = os.path.splitext(file_name)[0]
                 result_filename = f'{name_without_ext}-{projections_dict[projection_to].comment}.xlsx'
-                transformator = ExcelTransformer(projections_dict[projection_from], projections_dict[projection_to], int(latitude_column), int(longitude_column))
+                transformator = ExcelTransformer(
+                    projection_from=projections_dict[projection_from],
+                    projection_to=projections_dict[projection_to],
+                    latitude_column=int(latitude_column),
+                    longitude_column=int(longitude_column),
+                    metric=metric
+                )
                 df = transformator.transform(excel_file)
                 return dcc.send_data_frame(df.to_excel, result_filename, sheet_name='Sheet1', index=None)
             raise PreventUpdate

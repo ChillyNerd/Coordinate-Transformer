@@ -9,7 +9,9 @@ from dash import Dash, Input, Output, callback, State, dcc
 from dash.exceptions import PreventUpdate
 from flask import request
 from folium.plugins import MarkerCluster
-from src.app.components import layout
+
+from src.app.absent_app import AbsentApp
+from src.app.components import Layout
 from src.config import Config
 from src.coordinate_transformer.coordinate_formater import format_coordinate, angle_to_float
 from src.coordinate_transformer import projections_dict, CoordinateTransformer, BaseTransformException
@@ -18,14 +20,14 @@ from src.excel_transformer import ExcelTransformer, BaseExcelTransformException
 from src.shape_reader import ShapeReader, BaseShapeReadException
 
 
-class ApplicationServer:
+class ApplicationServer(AbsentApp):
     def __init__(self, config: Config):
         self.config = config
         self.log = logging.getLogger(config.application_server)
         self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
                         external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
         self.hidden = 'component-hidden'
-        self.app.layout = layout
+        self.app.layout = Layout(self).get_layout()
         self.init_callbacks()
 
     def init_callbacks(self):

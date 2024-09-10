@@ -95,12 +95,12 @@ class ApplicationServer:
 
         @callback(
             [
-                Output('output-manual-form', 'className')
+                Output('output_manual_form', 'className')
             ], [
                 Input('result_latitude', 'children'),
                 Input('result_longitude', 'children'),
                 Input('tabs_select', 'active_tab'),
-                State('output-manual-form', 'className')
+                State('output_manual_form', 'className')
             ]
         )
         def show_manual_result(result_latitude, result_longitude, active_tab, class_names):
@@ -303,18 +303,49 @@ class ApplicationServer:
                 raise PreventUpdate
 
         @callback([
-            Output('output_manual_form', 'className')
+            Output('output_form', 'className')
         ], [
-            Input('excel_points', 'data'),
-            Input('tabs_select', 'active_tab'),
             Input('zone_from_select', 'value'),
             Input('zone_to_select', 'value'),
-            State('output_manual_form', 'className')
-        ]
-        )
-        def show_excel_file(excel_points, active_tab, projection_from, projection_to, output_classes):
+            State('output_form', 'className')
+        ])
+        def show_output_form(projection_from, projection_to, output_classes):
             classes = output_classes.split()
-            if excel_points is None or projection_from is None or projection_to is None or active_tab != 'excel_tab':
+            if projection_from is None or projection_to is None:
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
+
+        @callback([
+            Output('output_excel_form', 'className')
+        ], [
+            Input('points', 'data'),
+            Input('tabs_select', 'active_tab'),
+            State('output_excel_form', 'className')
+        ])
+        def show_excel_form(points, selected_tab, output_classes):
+            classes = output_classes.split()
+            if points is None or len(points)==0 or selected_tab != 'excel_tab':
+                if self.hidden not in classes:
+                    classes.append(self.hidden)
+            else:
+                if self.hidden in classes:
+                    classes = list(filter(lambda class_name: class_name != self.hidden, classes))
+            return [' '.join(classes)]
+
+        @callback([
+            Output('output_shape_form', 'className')
+        ], [
+            Input('shape_files', 'data'),
+            Input('tabs_select', 'active_tab'),
+            State('output_shape_form', 'className')
+        ])
+        def show_shape_form(shape_file, selected_tab, output_classes):
+            classes = output_classes.split()
+            if shape_file is None or selected_tab != 'shape_tab':
                 if self.hidden not in classes:
                     classes.append(self.hidden)
             else:
@@ -326,13 +357,19 @@ class ApplicationServer:
             Output('zone_to_form', 'className')
         ], [
             Input('points', 'data'),
+            Input('shape_files', 'data'),
             Input('projection_to_select', 'value'),
+            State('tabs_select', 'active_tab'),
             State('zone_to_form', 'className')
-        ]
-        )
-        def show_zone_select_form(points, projection_group, output_classes):
+        ])
+        def show_zone_select_form(points, shape_files, projection_group, selected_tab, output_classes):
             classes = output_classes.split()
-            if projection_group is None or points is None or len(points) == 0:
+            should_be_hidden = projection_group is None
+            if selected_tab == 'shape_tab':
+                should_be_hidden = should_be_hidden or shape_files is None
+            else:
+                should_be_hidden = should_be_hidden or points is None or len(points) == 0
+            if should_be_hidden:
                 if self.hidden not in classes:
                     classes.append(self.hidden)
             else:
@@ -574,12 +611,18 @@ class ApplicationServer:
                 Output('projection_to_form', 'className')
             ], [
                 Input('points', 'data'),
+                Input('shape_files', 'data'),
+                State('tabs_select', 'active_tab'),
                 State('projection_to_form', 'className')
             ]
         )
-        def show_projection_to_form(points, projection_classes):
+        def show_projection_to_form(points, shape_files, selected_tab, projection_classes):
             classes = projection_classes.split()
-            if points is None or len(points) == 0:
+            if selected_tab == 'shape_tab':
+                should_be_hidden = shape_files is None
+            else:
+                should_be_hidden = points is None or len(points) == 0
+            if should_be_hidden:
                 if self.hidden not in classes:
                     classes.append(self.hidden)
             else:
@@ -588,7 +631,7 @@ class ApplicationServer:
             return [' '.join(classes)]
 
         @callback(
-            Output('download_data', 'data'),
+            Output('excel_download_data', 'data'),
             Input('download_excel_file', 'n_clicks'),
             State('zone_from_select', 'value'),
             State('zone_to_select', 'value'),

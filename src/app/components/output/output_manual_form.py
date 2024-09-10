@@ -16,4 +16,4 @@ result_longitude_label = html.Div("Долгота", className='label-form common
 result_longitude_value = html.Div(id='result_longitude')
 result_longitude_form = html.Div(children=[result_longitude_label, result_longitude_value], className='row-between')
 form = html.Div(children=[output_form_label, result_latitude_form, result_longitude_form],
-                className="column-gap border-top padding-top", id='output-manual-form')
+                className="column-gap border-top padding-top", id='output_manual_form')

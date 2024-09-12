@@ -1,6 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import html, Dash
 
+from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent
 from src.app.components.input.input_shape_form import InputShapeForm
 from src.app.components.input.input_excel_form import InputExcelForm
@@ -8,7 +9,7 @@ from src.app.components.input.input_manual_form import InputManualForm
 
 
 class Tabs(BaseComponent):
-    def __init__(self, app: Dash):
+    def __init__(self, app: AbstractApp):
         super().__init__(app)
         tabs = dbc.Tabs(
             [
@@ -36,6 +37,7 @@ class Tabs(BaseComponent):
         )
         input_tab_form = html.Div(children=[tabs], className="column-gap", id="input_tabs")
         self.layout = input_tab_form
+        self.init_callbacks()
 
     def init_callbacks(self):
         pass

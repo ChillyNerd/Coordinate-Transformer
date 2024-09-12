@@ -1,10 +1,13 @@
-from dash import dcc, html, Dash
+from dash import dcc, html, Dash, Output, Input
 
+from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent
+from src.coordinate_transformer import Metrics
+from src.coordinate_transformer.coordinate_formater import angle_to_float
 
 
 class InputAngleForm(BaseComponent):
-    def __init__(self, app: Dash):
+    def __init__(self, app: AbstractApp):
         super().__init__(app)
         latitude_label = html.Div("Широта", className='common-label')
         latitude_angle_input = dcc.Input(id='latitude_angle_input', type='number', className="angle-input-form",
@@ -42,6 +45,39 @@ class InputAngleForm(BaseComponent):
 
         form = html.Div(children=[latitude_form, longitude_form], className='column-gap', id='input_angle_form')
         self.layout = form
+        self.init_callbacks()
 
     def init_callbacks(self):
-        pass
+        @self.dash_app.callback(
+            [
+                Output('angle_longitude', 'data')
+            ], [
+                Input('longitude_angle_input', 'value'),
+                Input('longitude_angle_minutes_input', 'value'),
+                Input('longitude_angle_seconds_input', 'value'),
+                Input('metrics_select', 'value')
+            ]
+        )
+        def set_angle_longitude(angle, minutes, seconds, metric):
+            if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
+                return [None]
+            if angle is not None and minutes is not None and seconds is not None:
+                return [angle_to_float(angle, minutes, seconds)]
+            return [None]
+
+        @self.dash_app.callback(
+            [
+                Output('angle_latitude', 'data')
+            ], [
+                Input('latitude_angle_input', 'value'),
+                Input('latitude_angle_minutes_input', 'value'),
+                Input('latitude_angle_seconds_input', 'value'),
+                Input('metrics_select', 'value')
+            ]
+        )
+        def set_angle_latitude(angle, minutes, seconds, metric):
+            if metric == Metrics.METER.name or metric == Metrics.FLOAT_ANGLE.name:
+                return [None]
+            if angle is not None and minutes is not None and seconds is not None:
+                return [angle_to_float(angle, minutes, seconds)]
+            return [None]

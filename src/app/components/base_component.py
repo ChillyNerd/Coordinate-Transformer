@@ -2,13 +2,17 @@ from abc import ABC, abstractmethod
 
 from dash import Dash
 
+from src.app.abstract_app import AbstractApp
+
 
 class BaseComponent(ABC):
 
     layout = None
 
-    def __init__(self, app: Dash):
+    def __init__(self, app: AbstractApp):
         self.app = app
+        self.dash_app = app.app
+        self.hidden = 'component-hidden'
 
     @abstractmethod
     def init_callbacks(self):

@@ -1,6 +1,6 @@
 from dash import html, dcc
 
-from src.app.absent_app import AbsentApp
+from src.app.abstract_app import AbstractApp
 from src.app.components.base_component import BaseComponent
 from src.app.components.split.split import SplitPane
 from src.app.components.choose_columns.choose_columns import ChooseColumns
@@ -9,8 +9,8 @@ from src.app.components.error.error_form import ErrorForm
 
 class Layout:
 
-    def __init__(self, app: AbsentApp):
-        self.dash_app = app.app
+    def __init__(self, app: AbstractApp):
+        self.app = app
 
     def get_layout(self):
         layout = html.Div(
@@ -35,9 +35,9 @@ class Layout:
                 dcc.Store(id='excel_read_error'),
                 dcc.Store(id='shape_read_error'),
                 dcc.Store(id='excel_show_error'),
-                SplitPane(self.dash_app).get_layout(),
-                ChooseColumns(self.dash_app).get_layout(),
-                ErrorForm(self.dash_app).get_layout()
+                SplitPane(self.app).get_layout(),
+                ChooseColumns(self.app).get_layout(),
+                ErrorForm(self.app).get_layout()
             ],
             className="column-gap"
         )

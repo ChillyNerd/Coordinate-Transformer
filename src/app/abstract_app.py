@@ -3,14 +3,13 @@ from logging import Logger
 
 from dash import Dash
 
+from src.config import Config
+
 
 class AbstractApp(ABC):
     app: Dash
+    config: Config
     log: Logger
-
-    @abstractmethod
-    def init_callbacks(self):
-        pass
 
     @abstractmethod
     def upload_file(self, client_address, file_type: str, file: dict):
@@ -35,4 +34,13 @@ class AbstractApp(ABC):
 
     @abstractmethod
     def recursive_files_delete(self, filepath):
+        pass
+
+    @abstractmethod
+    def replace_shape_prj(self, shape_file, projection_from):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def zip_directory(directory_path, filename):
         pass

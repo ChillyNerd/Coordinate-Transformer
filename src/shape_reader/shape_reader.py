@@ -13,7 +13,6 @@ class ShapeReader:
             shutil.unpack_archive(filepath, directory_name)
         except Exception as e:
             raise FileIsNotArchive()
-        os.remove(filepath)
         content = os.listdir(directory_name)
         for file in content:
             ShapeReader.read_directories(os.path.join(directory_name, file), directory_name)

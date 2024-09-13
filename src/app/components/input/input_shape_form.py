@@ -62,13 +62,17 @@ class InputShapeForm(BaseComponent):
         @self.dash_app.callback(
             Output('shape_files', 'data'),
             Output('shape_read_error', 'data'),
-            Input('shape_archive', 'data')
+            Input('shape_archive', 'data'),
+            Input('zone_from_select', 'value'),
         )
-        def read_shape(shape_archive):
-            if shape_archive is None:
+        def read_shape(shape_archive, projection_from):
+            if shape_archive is None or projection_from is None:
                 return None, None
             try:
-                return ShapeReader.read(shape_archive), None
+                shape_files = ShapeReader.read(shape_archive)
+                for shape_file in shape_files:
+                    self.app.replace_shape_prj(shape_file, projection_from)
+                return shape_files, None
             except BaseShapeReadException as ex:
                 self.app.log.exception(ex)
                 return None, ex.message

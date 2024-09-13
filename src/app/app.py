@@ -1,33 +1,29 @@
 import base64
 import logging
 import os
+import zipfile
 
 import dash_bootstrap_components as dbc
 from dash import Dash
-from flask import request
 
 from src.app.abstract_app import AbstractApp
 from src.app.components import Layout
 from src.config import Config
+from src.coordinate_transformer import projections_dict
 
 
 class ApplicationServer(AbstractApp):
     def __init__(self, config: Config):
         self.config = config
         self.log = logging.getLogger(config.application_server)
-        self.app = Dash(__name__, update_title=None, title='Калькулятор координат',
-                        external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
+        self.app = Dash(
+            __name__,
+            update_title=None,
+            title='Калькулятор координат',
+            external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP]
+        )
         self.app.layout = Layout(self).get_layout()
         self.hidden = 'component-hidden'
-        self.init_callbacks()
-
-    def init_callbacks(self):
-        @self.app.server.route('/client-close', methods=['POST'])
-        def handle_client_close():
-            client = request.remote_addr
-            self.log.debug(f"Client {client} has closed application")
-            self.delete_clients_repo(client)
-            return '', 200
 
     def upload_file(self, client_address, file_type: str, file: dict):
         directory_path = self.refresh_or_create_directory(client_address, file_type)
@@ -76,3 +72,18 @@ class ApplicationServer(AbstractApp):
             os.rmdir(filepath)
         else:
             os.remove(filepath)
+
+    def replace_shape_prj(self, shape_file, projection):
+        shape_directory = os.path.dirname(shape_file)
+        shape_name = os.path.splitext(os.path.basename(shape_file))[0]
+        prj_content = projections_dict[projection].prj
+        with open(os.path.join(shape_directory, f'{shape_name}.prj'), 'w') as fp:
+            fp.write(prj_content)
+
+    @staticmethod
+    def zip_directory(directory_path, filename):
+        with zipfile.ZipFile(filename, 'w') as zip_file:
+            for folder_name, subfolders, filenames in os.walk(directory_path):
+                for filename in filenames:
+                    file_path = os.path.join(folder_name, filename)
+                    zip_file.write(file_path, os.path.relpath(file_path, os.path.dirname(directory_path)))

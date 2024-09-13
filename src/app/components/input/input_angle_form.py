@@ -1,4 +1,4 @@
-from dash import dcc, html, Dash, Output, Input
+from dash import dcc, html, Output, Input
 
 from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent

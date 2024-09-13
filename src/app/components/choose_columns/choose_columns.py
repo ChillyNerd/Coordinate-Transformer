@@ -1,7 +1,7 @@
 import traceback
 
-from dash import html, Dash, Output, Input, State
 import dash_bootstrap_components as dbc
+from dash import html, Output, Input, State
 from dash.exceptions import PreventUpdate
 
 from src.app.abstract_app import AbstractApp

@@ -2,11 +2,13 @@ import logging
 
 from pyproj import Transformer
 from pyproj.enums import TransformDirection
-from src.coordinate_transformer.transform_exception import NotImplementedYet
-from src.coordinate_transformer.impl import Projection
-from src.coordinate_transformer.enums import ProjectionType
-from src.coordinate_transformer.defaults import dependencies, intermediate_projections_dict, pulkovo_to_pz, gsk_to_pz, LUK_CRS
+
 from src.config import Config
+from src.coordinate_transformer.defaults import dependencies, intermediate_projections_dict, pulkovo_to_pz, gsk_to_pz, \
+    LUK_CRS
+from src.coordinate_transformer.enums import ProjectionType
+from src.coordinate_transformer.impl import Projection
+from src.coordinate_transformer.transform_exception import NotImplementedYet
 
 
 class TransformNode:

@@ -1,11 +1,11 @@
 import dash_bootstrap_components as dbc
-from dash import html, Dash
+from dash import html
 
 from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent
-from src.app.components.input.input_shape_form import InputShapeForm
 from src.app.components.input.input_excel_form import InputExcelForm
 from src.app.components.input.input_manual_form import InputManualForm
+from src.app.components.input.input_shape_form import InputShapeForm
 
 
 class Tabs(BaseComponent):

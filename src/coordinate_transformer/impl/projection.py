@@ -2,7 +2,7 @@ from src.coordinate_transformer.enums import ProjectionType, ProjectionGroup, Me
 
 
 class Projection:
-    def __init__(self, mnemonic: str, comment: str, projection_type: ProjectionType,projection_group: ProjectionGroup,
+    def __init__(self, mnemonic: str, comment: str, projection_type: ProjectionType, projection_group: ProjectionGroup,
                  metric_type: MetricType = MetricType.METER, disabled: bool = False):
         self.mnemonic: str = mnemonic
         self.comment: str = comment

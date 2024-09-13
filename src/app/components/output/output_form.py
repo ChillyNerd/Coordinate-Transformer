@@ -1,4 +1,4 @@
-from dash import html, Dash, Output, Input, State
+from dash import html, Output, Input, State
 
 from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent

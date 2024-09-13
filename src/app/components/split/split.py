@@ -1,17 +1,17 @@
 import os
 
 import dash_split_pane
-import geopandas
-from dash import html, Dash, Output, Input, State
 import folium
+import geopandas
+from dash import html, Output, Input, State
 from folium.plugins import MarkerCluster
 
 from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent
 from src.app.components.choose_form.choose_form import ChooseForm
+from src.app.components.input.input_projection_form import ProjectionToForm
 from src.app.components.output.output_form import OutputForm
 from src.app.components.tabs.tabs import Tabs
-from src.app.components.input.input_projection_form import ProjectionToForm
 
 
 class SplitPane(BaseComponent):

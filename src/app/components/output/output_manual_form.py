@@ -1,5 +1,5 @@
-from dash import html, Dash, Output, Input, State
 import dash_bootstrap_components as dbc
+from dash import html, Output, Input, State
 from dash.exceptions import PreventUpdate
 
 from src.app.abstract_app import AbstractApp
@@ -35,13 +35,13 @@ class OutputManualForm(BaseComponent):
 
     def init_callbacks(self):
         @self.dash_app.callback([
-                Output('output_manual_form', 'className')
-            ], [
-                Input('result_latitude', 'children'),
-                Input('result_longitude', 'children'),
-                Input('tabs_select', 'active_tab'),
-                State('output_manual_form', 'className')
-            ]
+            Output('output_manual_form', 'className')
+        ], [
+            Input('result_latitude', 'children'),
+            Input('result_longitude', 'children'),
+            Input('tabs_select', 'active_tab'),
+            State('output_manual_form', 'className')
+        ]
         )
         def show_manual_result(result_latitude, result_longitude, active_tab, class_names):
             classes = class_names.split()

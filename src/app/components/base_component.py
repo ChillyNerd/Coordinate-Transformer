@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
 
-from dash import Dash
-
 from src.app.abstract_app import AbstractApp
 
 
 class BaseComponent(ABC):
-
     layout = None
 
     def __init__(self, app: AbstractApp):

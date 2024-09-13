@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import Dash, Output, Input
+from dash import Output, Input
 
 from src.app.abstract_app import AbstractApp
 from src.app.components import BaseComponent

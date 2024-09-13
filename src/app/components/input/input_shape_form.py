@@ -1,13 +1,12 @@
 import traceback
 
 import dash_bootstrap_components as dbc
+from dash import dcc, html, Output, Input, State
 from dash.exceptions import PreventUpdate
 from flask import request
 
 from src.app.abstract_app import AbstractApp
 from src.app.assets.icons import delete_icon
-from dash import dcc, html, Dash, Output, Input, State
-
 from src.app.components import BaseComponent
 from src.shape_reader import ShapeReader, BaseShapeReadException
 

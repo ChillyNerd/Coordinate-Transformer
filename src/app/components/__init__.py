@@ -2,9 +2,9 @@ from dash import html, dcc
 
 from src.app.abstract_app import AbstractApp
 from src.app.components.base_component import BaseComponent
-from src.app.components.split.split import SplitPane
 from src.app.components.choose_columns.choose_columns import ChooseColumns
 from src.app.components.error.error_form import ErrorForm
+from src.app.components.split.split import SplitPane
 
 
 class Layout:

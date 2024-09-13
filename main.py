@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 
 from src.app import ApplicationServer
 from src.config import Config

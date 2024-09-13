@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import html, Dash, Output, Input, State
+from dash import html, Output, Input, State
 from dash.exceptions import PreventUpdate
 
 from src.app.abstract_app import AbstractApp
@@ -58,7 +58,9 @@ class ChooseForm(BaseComponent):
             numeric_classes = numeric_class_name.split()
             projections = projections_dict.values()
             zones_from = list(filter(
-                lambda projection: metric_name in [metric.name for metric in Metrics if metric.value.metric_type == projection.metric_type] and not projection.disabled and projection.projection_group == projection_from, projections
+                lambda projection: metric_name in [metric.name for metric in Metrics if
+                                                   metric.value.metric_type == projection.metric_type] and not projection.disabled and projection.projection_group == projection_from,
+                projections
             ))
             projections_from_options = [{'label': proj.comment, 'value': proj.mnemonic} for proj in zones_from]
             if metric_name == Metrics.METER.name or metric_name == Metrics.FLOAT_ANGLE.name:

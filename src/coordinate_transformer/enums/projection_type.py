@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ProjectionType(Enum):
     GSK_ZONE = 'Зона ГСК2011'
     GSK_NZONE = 'Зона N ГСК2011'
